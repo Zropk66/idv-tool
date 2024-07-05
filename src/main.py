@@ -5,7 +5,6 @@ import time
 import psutil
 import ctypes
 import os
-import json
 import configparser
 
 
