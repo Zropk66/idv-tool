@@ -1,13 +1,12 @@
+import configparser
+import ctypes
 import glob
+import os
 import socket
 import sys
 import time
 
 import psutil
-import ctypes
-import os
-import configparser
-
 import requests
 import win32api
 
@@ -42,7 +41,7 @@ def ask_and_save(config_file):
     while True:
         choice = input("是否开启计时？（y/n）: ").strip().lower()
         if choice in ['y', 'n']:
-            save_to_config({'settings': {'timing_enabled': choice == 'y'}}, config_file)
+            save_to_config({'settings': {'timer_enable': choice == 'y'}}, config_file)
             return choice == 'y'
         else:
             print("请输入 'y' 或 'n'.")
@@ -55,8 +54,8 @@ def save_to_config(settings_dict, config_file):
     for section, options in settings_dict.items():
         if section not in config:
             config[section] = {}
-        for idx, program in enumerate(options):
-            config[section][f'program_{idx + 1}'] = program
+        for key, value in options.items():
+            config[section][key] = str(value)
 
     with open(config_file, 'w') as configfile:
         config.write(configfile)
@@ -67,7 +66,7 @@ def load_from_config():
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE)
     if 'settings' in config:
-        timer_enable = config['settings'].getboolean('timing_enabled', fallback=False)
+        timer_enable = config['settings'].getboolean('timer_enable', fallback=False)
         return timer_enable
     else:
         return False
@@ -163,11 +162,11 @@ if __name__ == '__main__':
     check_and_update(Program_dir, idv_login_program_name)
 
     if not os.path.exists(CONFIG_FILE):
-        timing_enabled = ask_and_save(CONFIG_FILE)
+        timer_enable = ask_and_save(CONFIG_FILE)
     else:
-        timing_enabled = load_from_config()
+        timer_enable = load_from_config()
 
-    if timing_enabled:
+    if timer_enable:
         print("计时已开启。")
     else:
         print("计时未开启。")
@@ -188,7 +187,7 @@ if __name__ == '__main__':
                 break
             time.sleep(1)
 
-        if timing_enabled:
+        if timer_enable:
             second = 0
             minute = 0
             hour = 0
