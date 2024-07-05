@@ -62,6 +62,7 @@ def load_from_config():
     else:
         return False
 
+
 if __name__ == '__main__':
 
     __version__ = '1.1.0'
@@ -84,8 +85,8 @@ if __name__ == '__main__':
 
     os.system("title 第五人格小助手 - " + __version__)
 
-    # Program_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-    Program_dir = "E:\\Netease\\dwrg"
+    Program_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+    # Program_dir = "E:\\Netease\\dwrg"
 
     if is_admin():
 
