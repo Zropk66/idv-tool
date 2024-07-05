@@ -147,13 +147,15 @@ def check_and_update(Program_dir, idv_login_program_name):
 if __name__ == '__main__':
     __version__ = '1.2.0'
     CONFIG_FILE = 'config.ini'
+    os.system(f"title 当前版本：{__version__}")
 
     Program_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     # Program_dir = "E:\\Netease\\dwrg"
 
     idv_login_programs = find_idv_login_programs(Program_dir)
     if not idv_login_programs:
-        print("未找到登陆程序，请将登陆程序放在与本程序一起放在第五人格根目录")
+        print("未找到登陆程序，请将 IdentityV Login Helper 与本程序一起放在第五人格根目录")
+        print("若未下载，可以前往 https://github.com/Alexander-Porter/idv-login 下载")
         os.system("pause")
         sys.exit()
     else:
