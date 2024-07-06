@@ -169,7 +169,7 @@ def check_update(program_dir, program_name):
 if __name__ == '__main__':
     print(time.time())
     try:
-        __version__ = '1.2.1'
+        __version__ = '1.3.0'
         CONFIG_FILE = 'config.ini'
         os.system(f"title 当前版本：{__version__}")
 
