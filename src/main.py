@@ -9,6 +9,7 @@ import time
 import psutil
 import requests
 import win32api
+from tqdm import tqdm
 
 
 def is_port_in_use(port):
@@ -48,18 +49,21 @@ def ask_and_save(config_file):
 
 
 def save_to_config(settings_dict, config_file):
-    config = configparser.ConfigParser()
-    config.read(config_file)
+    try:
+        config = configparser.ConfigParser()
+        config.read(config_file)
 
-    for section, options in settings_dict.items():
-        if section not in config:
-            config[section] = {}
-        for key, value in options.items():
-            config[section][key] = str(value)
+        for section, options in settings_dict.items():
+            if section not in config:
+                config[section] = {}
+            for key, value in options.items():
+                config[section][key] = str(value)
 
-    with open(config_file, 'w') as configfile:
-        config.write(configfile)
-    print(f"设置已保存到 {config_file} 文件中。")
+        with open(config_file, 'w') as configfile:
+            config.write(configfile)
+        print(f"设置已保存到 {config_file} 文件中。")
+    except KeyboardInterrupt as e:
+        print("检测到用户退出程序，输入中断！")
 
 
 def load_from_config():
@@ -99,52 +103,71 @@ def get_file_version(file_path):
         return None
 
 
-def update(url, save_path):
-    print("正在更新...")
-    response = requests.get(url)
-    with open(save_path, 'wb') as f:
-        f.write(response.content)
-
-
-def check_and_update(Program_dir, Program_name):
+def idvLogin_info():
     github_repo_owner = "Alexander-Porter"
     github_repo_name = "idv-login"
 
-    # GitHub API的基础URL
     github_api_url = f"https://api.github.com/repos/{github_repo_owner}/{github_repo_name}/releases/latest"
+
     try:
         response = requests.get(github_api_url)
         if response.status_code == 200:
             release_info = response.json()
 
-            download_url = release_info['assets'][0]['browser_download_url']
+            return release_info
 
-            file_path = Program_dir + "\\" + Program_name
-            current_version = get_file_version(file_path)
-            version = release_info['name']
-            latest_version = version[1:6]
-
-            if current_version == latest_version:
-                print("无需更新")
-                return True
-            else:
-                update(download_url, f"D:\\Misc\\{release_info['assets'][0]['name']}")
-                print("更新成功！")
-                try:
-                    os.remove(file_path)
-                    print("请重新打开本程序")
-                    time.sleep(3)
-                    sys.exit()
-                except OSError as e:
-                    print(f"删除旧文件时出错: {e}")
-                return False
         else:
             print(f"无法获取发布信息。状态码: {response.status_code}")
+            return False
+    except Exception as e:
+        print("获取api信息出现错误")
+
+
+def download_update(url, save_path):
+    response = requests.get(url, stream=True)
+    total_size_in_bytes = int(response.headers.get('content-length', 0))
+    block_size = 1024
+    progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True, desc="下载进度：")
+
+    with open(save_path, 'wb') as f:
+        for data in response.iter_content(block_size):
+            progress_bar.update(len(data))
+            f.write(data)
+
+    progress_bar.close()
+
+
+def check_update(program_dir, program_name):
+    try:
+        release_info = idvLogin_info()
+        download_url = release_info['assets'][0]['browser_download_url']
+
+        file_path = program_dir + "\\" + program_name
+        current_version = get_file_version(file_path)
+        version = release_info['name']
+        latest_version = version[1:6]
+
+        if current_version == latest_version:
+            return True
+        else:
+            print("检测到新版本！")
+            try:
+                print("正在更新...")
+                download_update(download_url, f"{Program_dir}\\{release_info['assets'][0]['name']}")
+                print("更新成功！")
+                os.remove(file_path)
+
+                return release_info
+            except OSError as e:
+                print(f"删除旧文件时出错: {e}")
+            return False
+
     except Exception as e:
         print(f"更新失败!: {e}")
 
 
 if __name__ == '__main__':
+    print(time.time())
     try:
         __version__ = '1.2.0'
         CONFIG_FILE = 'config.ini'
@@ -154,15 +177,24 @@ if __name__ == '__main__':
         # Program_dir = "E:\\Netease\\dwrg"
 
         idv_login_programs = find_idv_login_programs(Program_dir)
-        if not idv_login_programs:
-            print("未找到登陆程序，请将 IdentityV Login Helper 与本程序一起放在第五人格根目录")
-            print("若未下载，可以前往 https://github.com/Alexander-Porter/idv-login 下载")
-            os.system("pause")
-            sys.exit()
-        else:
-            idv_login_program_name = idv_login_programs[0]
 
-        check_and_update(Program_dir, idv_login_program_name)
+        if not idv_login_programs:
+            try:
+                print("未在当前目录找到idv-login正在尝试下载")
+                release_info = idvLogin_info()
+                download_url = release_info['assets'][0]['browser_download_url']
+
+                download_update(download_url, f"{Program_dir}\\{release_info['assets'][0]['name']}")
+                print("下载成功！")
+            except Exception as e:
+                print(f"下载失败!: {e}")
+                os.system("pause")
+                sys.exit()
+
+        idv_login_program_name = (find_idv_login_programs(Program_dir))[0]
+
+        if idv_login_programs:
+            check_update(Program_dir, idv_login_program_name)
 
         if not os.path.exists(CONFIG_FILE):
             timer_enable = ask_and_save(CONFIG_FILE)
@@ -195,6 +227,8 @@ if __name__ == '__main__':
                 minute = 0
                 hour = 0
 
+                time.sleep(5)
+
                 while is_process_running("dwrg.exe"):
                     if second >= 60:
                         second -= 60
@@ -219,6 +253,6 @@ if __name__ == '__main__':
             sys.exit()
         else:
             ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
-    except:
-        print("程序出现未知错误，现已退出！")
+    except Exception as e:
+        print(f"程序出现未知错误，现已退出！错误代码:{e}")
         os.system("pause")
