@@ -76,8 +76,8 @@ def load_from_config():
         return False
 
 
-def find_idv_login_programs(directory):
-    pattern = os.path.join(directory, 'idv-login*')
+def find_programs(directory, program_name):
+    pattern = os.path.join(directory, program_name)
     idv_login_programs = glob.glob(pattern)
     program_names = [os.path.basename(program) for program in idv_login_programs]
     return program_names
@@ -166,18 +166,32 @@ def check_update(program_dir, program_name):
         print(f"更新失败!: {e}")
 
 
+def disable_quickedit():
+    kernel32 = ctypes.windll.kernel32
+    kernel32.SetConsoleMode(kernel32.GetStdHandle(-10), (0x4 | 0x80 | 0x20 | 0x2 | 0x10 | 0x1 | 0x00 | 0x100))
+
+
 if __name__ == '__main__':
     try:
-        __version__ = '1.3.0'
+        __version__ = '1.3.1'
         CONFIG_FILE = 'config.ini'
-        os.system(f"title 当前版本：{__version__}")
+        os.system(f"title 第五人格小助手 - 当前版本：{__version__}")
 
         Program_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
         # Program_dir = "E:\\Netease\\dwrg"
 
-        idv_login_programs = find_idv_login_programs(Program_dir)
+        dwrg_program = find_programs(Program_dir, 'dwrg.exe')
 
-        if not idv_login_programs:
+        if not dwrg_program:
+            print("当前文件夹未找到第五人格， 请将程序放置在第五人格根目录后再运行！")
+            os.system("pause")
+            sys.exit()
+        else:
+            print(f"成功找到第五人格，路径：{Program_dir}\{dwrg_program[0]}")
+
+        idv_login_program = find_programs(Program_dir, 'idv-login*')
+
+        if not idv_login_program:
             try:
                 print("未在当前目录找到idv-login正在尝试下载")
                 release_info = idvLogin_info()
@@ -190,10 +204,11 @@ if __name__ == '__main__':
                 os.system("pause")
                 sys.exit()
 
-        idv_login_program_name = (find_idv_login_programs(Program_dir))[0]
+        idv_login_program = idv_login_program[0]
+        print(f"成功找到idv-login，路径:{Program_dir}\{idv_login_program}")
 
-        if idv_login_programs:
-            check_update(Program_dir, idv_login_program_name)
+        if idv_login_program:
+            check_update(Program_dir, idv_login_program)
 
         if not os.path.exists(CONFIG_FILE):
             timer_enable = ask_and_save(CONFIG_FILE)
@@ -206,8 +221,9 @@ if __name__ == '__main__':
             print("计时未开启。")
 
         if is_admin():
+            disable_quickedit()
             print("正在启动登录工具...")
-            os.system("start " + Program_dir + "\\" + idv_login_program_name)
+            os.system("start " + Program_dir + "\\" + idv_login_program)
             while not is_port_in_use(443):
                 time.sleep(1)
             print("登录工具启动成功，正在唤醒第五人格！")
@@ -244,8 +260,8 @@ if __name__ == '__main__':
                 sys.exit()
 
             print("第五人格已关闭...")
-            if is_process_running(idv_login_program_name):
-                os.system(f"taskkill /im {idv_login_program_name} /f")
+            if is_process_running(idv_login_program):
+                os.system(f"taskkill /im {idv_login_program} /f")
                 print("登录工具已关闭已关闭...")
             print("程序即将关闭...")
             time.sleep(1)
