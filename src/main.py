@@ -205,6 +205,7 @@ if __name__ == '__main__':
                 sys.exit()
 
         idv_login_program = idv_login_program[0]
+
         print(f"成功找到idv-login，路径:{Program_dir}\{idv_login_program}")
 
         if idv_login_program:
