@@ -254,7 +254,7 @@ if __name__ == '__main__':
                         hour += 1
                     os.system("cls")
                     print("第五人格运行中...")
-                    print("已运行 " + str(hour) + " 时 " + str(minute) + " 分 " + str(second) + " 秒")
+                    print(f"已运行 {str(hour)} 时 {str(minute)} 分 {str(second)} 秒")
                     second += 1
                     time.sleep(1)
             else:
