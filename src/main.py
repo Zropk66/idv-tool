@@ -230,12 +230,16 @@ if __name__ == '__main__':
             print("登录工具启动成功，正在唤醒第五人格！")
             os.system("start " + Program_dir + "\dwrg.exe")
 
-            print("正在等待第五人格运行... \n(第五人格若在 10 秒后还未启动程序将自动关闭)")
+            # print("正在等待第五人格运行... (第五人格若在 10 秒后还未启动程序将自动关闭)")
 
             for i in range(10):
                 if is_process_running("dwrg.exe"):
                     print("第五人格已启动！")
                     break
+                elif i == 9:
+                    print("第五人格启动超时，程序已退出！")
+                    os.system("pause")
+                    sys.exit()
                 time.sleep(1)
 
             if timer_enable:
