@@ -2,6 +2,7 @@ import configparser
 import ctypes
 import glob
 import os
+import platform
 import socket
 import sys
 import time
@@ -103,11 +104,16 @@ def get_file_version(file_path):
         return None
 
 
-def idvLogin_info():
-    github_repo_owner = "Alexander-Porter"
-    github_repo_name = "idv-login"
+image_source = "https://mirror.ghproxy.com"
 
-    github_api_url = f"https://api.github.com/repos/{github_repo_owner}/{github_repo_name}/releases/latest"
+
+def idvLogin_info():
+    try:
+        socket.gethostbyname("api.github.com")
+        github_api_url = f"https://api.github.com/repos/Alexander-Porter/idv-login/releases/latest"
+    except socket.error:
+        print("api.github.com连接错误，将使用镜像源！")
+        github_api_url = f"http://47.94.167.221:1563/repos/Alexander-Porter/idv-login/releases/latest"
 
     try:
         response = requests.get(github_api_url)
@@ -118,13 +124,19 @@ def idvLogin_info():
         else:
             print(f"无法获取发布信息。状态码: {response.status_code}")
             return False
-    except Exception as e:
-        print("获取api信息出现错误，请确保您的网络环境能访问 https://api.github.com 本次更新跳过！")
+    except Exception:
+        print("获取api信息出现错误，请确保您的网络环境良好，本次更新跳过！")
 
 
 def download_update(url, save_path):
-    speed_url = f"https://gh.api.99988866.xyz/{url}"
-    response = requests.get(speed_url, stream=True)
+    try:
+        socket.gethostbyname(image_source[8:])
+        print("使用镜像源下载")
+        url = f"{image_source}/{url}"
+    except socket.error:
+        print("镜像源无法连接，尝试使用github下载！")
+
+    response = requests.get(url, stream=True)
     total_size_in_bytes = int(response.headers.get('content-length', 0))
     block_size = 1024
     progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True, desc="下载进度")
@@ -140,7 +152,11 @@ def download_update(url, save_path):
 def check_update(program_dir, program_name):
     try:
         release_info = idvLogin_info()
-        download_url = release_info['assets'][0]['browser_download_url']
+
+        if int(platform.release()) <= 7:
+            download_url = release_info['assets'][2]['browser_download_url']
+        else:
+            download_url = release_info['assets'][0]['browser_download_url']
 
         file_path = program_dir + "\\" + program_name
         current_version = get_file_version(file_path)
@@ -152,10 +168,13 @@ def check_update(program_dir, program_name):
         else:
             print("检测到新版本！")
             try:
-                print("正在更新...")
-                download_update(download_url, f"{Program_dir}\\{release_info['assets'][0]['name']}")
-                print("更新成功！")
                 os.remove(file_path)
+                print("正在更新...")
+                if int(platform.release()) <= 7:
+                    download_update(download_url, f"{Program_dir}\\{release_info['assets'][2]['name']}")
+                else:
+                    download_update(download_url, f"{Program_dir}\\{release_info['assets'][0]['name']}")
+                print("更新成功！")
 
                 return release_info
             except OSError as e:
@@ -173,12 +192,11 @@ def disable_quickedit():
 
 if __name__ == '__main__':
     try:
-        __version__ = '1.3.2'
+        __version__ = '1.4.0'
         CONFIG_FILE = 'config.ini'
         os.system(f"title 第五人格小助手 - 当前版本：{__version__}")
 
         Program_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-        # Program_dir = "E:\\Netease\\dwrg"
 
         dwrg_program = find_programs(Program_dir, 'dwrg.exe')
 
@@ -191,13 +209,25 @@ if __name__ == '__main__':
 
         idv_login_program = find_programs(Program_dir, 'idv-login*')
 
+        if len(idv_login_program) > 1:
+            print("识别到当前目录有多个 idv-login 将自动删除并自动下载最新版本！")
+            for program in idv_login_program:
+                os.remove(program)
+            idv_login_program.clear()
+        else:
+            if not idv_login_program:
+                print("未在当前目录找到idv-login正在尝试下载")
+
         if not idv_login_program:
             try:
-                print("未在当前目录找到idv-login正在尝试下载")
                 release_info = idvLogin_info()
-                download_url = release_info['assets'][0]['browser_download_url']
+                if int(platform.release()) <= 7:
+                    download_url = release_info['assets'][2]['browser_download_url']
+                    download_update(download_url, f"{Program_dir}\\{release_info['assets'][2]['name']}")
+                else:
+                    download_url = release_info['assets'][0]['browser_download_url']
+                    download_update(download_url, f"{Program_dir}\\{release_info['assets'][0]['name']}")
 
-                download_update(download_url, f"{Program_dir}\\{release_info['assets'][0]['name']}")
                 print("下载成功！")
                 idv_login_program = find_programs(Program_dir, 'idv-login*')
             except Exception as e:
