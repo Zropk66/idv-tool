@@ -113,21 +113,21 @@ def idvLogin_info():
         response = requests.get(github_api_url)
         if response.status_code == 200:
             release_info = response.json()
-
             return release_info
 
         else:
             print(f"无法获取发布信息。状态码: {response.status_code}")
             return False
     except Exception as e:
-        print("获取api信息出现错误")
+        print("获取api信息出现错误，请确保您的网络环境能访问 https://api.github.com 本次更新跳过！")
 
 
 def download_update(url, save_path):
-    response = requests.get(url, stream=True)
+    speed_url = f"https://gh.api.99988866.xyz/{url}"
+    response = requests.get(speed_url, stream=True)
     total_size_in_bytes = int(response.headers.get('content-length', 0))
     block_size = 1024
-    progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True, desc="下载进度：")
+    progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True, desc="下载进度")
 
     with open(save_path, 'wb') as f:
         for data in response.iter_content(block_size):
@@ -163,7 +163,7 @@ def check_update(program_dir, program_name):
             return False
 
     except Exception as e:
-        print(f"更新失败!: {e}")
+        print(f"更新失败!,错误代码: {e}")
 
 
 def disable_quickedit():
@@ -173,7 +173,7 @@ def disable_quickedit():
 
 if __name__ == '__main__':
     try:
-        __version__ = '1.3.1'
+        __version__ = '1.3.2'
         CONFIG_FILE = 'config.ini'
         os.system(f"title 第五人格小助手 - 当前版本：{__version__}")
 
@@ -199,6 +199,7 @@ if __name__ == '__main__':
 
                 download_update(download_url, f"{Program_dir}\\{release_info['assets'][0]['name']}")
                 print("下载成功！")
+                idv_login_program = find_programs(Program_dir, 'idv-login*')
             except Exception as e:
                 print(f"下载失败!: {e}")
                 os.system("pause")
@@ -217,9 +218,9 @@ if __name__ == '__main__':
             timer_enable = load_from_config()
 
         if timer_enable:
-            print("计时已开启。")
+            print("计时已开启。(若需要关闭计时器可以在本工具同级目录找到“config.ini”文件，将其值改为False即可)")
         else:
-            print("计时未开启。")
+            print("计时未开启。(若需要开启计时器可以在本工具同级目录找到“config.ini”文件，将其值改为True即可)")
 
         if is_admin():
             disable_quickedit()
