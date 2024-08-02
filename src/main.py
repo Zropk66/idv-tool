@@ -168,7 +168,7 @@ def download_update(url, save_path):
 def check_update(program_dir, program_name):
     idv_tool_release_info = update_info("idv-tool", False)
     latest_idv_tool_version = idv_tool_release_info['tag_name']
-    if __version__ > latest_idv_tool_version:
+    if __version__ < latest_idv_tool_version:
         print("检测到本工具存在新版本！")
 
         if not find_program(Program_dir, 'updater.exe'):
