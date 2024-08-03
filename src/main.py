@@ -85,6 +85,7 @@ def check_hash(idv_login_release_info):
     if hash_from_config is None or current_hash.upper() != hash_from_config.upper():
         print("验证失败，可能是 idv-login 已损坏!")
         print("正在尝试下载最新 idv-login...")
+        os.remove(f"{Program_dir}\\{idv_login_program}")
 
         download_index = get_download_index(idv_login_release_info, False)
         download_url = get_download_url(idv_login_release_info, False)
