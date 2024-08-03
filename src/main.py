@@ -294,7 +294,7 @@ def get_download_url(info, get_hash: bool):
 
 if __name__ == '__main__':
     # try:
-    __version__ = '1.4.4'
+    __version__ = '1.4.5'
     CONFIG_FILE = 'config.ini'
     image_source = "https://mirror.ghproxy.com"
 
