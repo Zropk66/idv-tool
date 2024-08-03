@@ -96,7 +96,6 @@ def check_hash(idv_login_release_info):
             hash_value = f.read().strip()
         save_to_config({'idv-login': {'hash': hash_value}}, CONFIG_FILE)
     if current_hash.upper() == hash_from_config.upper():
-        os.remove(Program_dir + "\\hash.sha256")
         return True
 
 
@@ -201,14 +200,14 @@ def check_update(idv_login_release_info, idv_tool_release_info, program_dir, pro
 
         if not find_program(Program_dir, 'updater.exe'):
             idv_tool_update_info = get_info("idv-tool", True)
-            i = 0
+            index = 0
 
             while True:
                 try:
-                    name = idv_tool_update_info[i]['name']
+                    name = idv_tool_update_info[index]['name']
                     if name == "updater.exe":
                         break
-                    i += 1
+                    index += 1
                 except IndexError:
                     break
 
@@ -218,7 +217,9 @@ def check_update(idv_login_release_info, idv_tool_release_info, program_dir, pro
             #         break
             #     i += 1
 
-            download_file(get_download_url(idv_tool_update_info, False), idv_tool_update_info[i]['name'])
+            download_url = idv_tool_update_info[index]['download_url']
+
+            download_file(download_url, idv_tool_update_info[index]['name'])
 
         updater_url = idv_tool_release_info['assets'][0]['browser_download_url']
         file = open("updater.ini", "w")
@@ -293,7 +294,7 @@ def get_download_url(info, get_hash: bool):
 
 if __name__ == '__main__':
     # try:
-    __version__ = '1.4.5'
+    __version__ = '1.4.4'
     CONFIG_FILE = 'config.ini'
     image_source = "https://mirror.ghproxy.com"
 
@@ -335,7 +336,6 @@ if __name__ == '__main__':
             #     download_update(download_url, f"{Program_dir}\\{release_info['assets'][0]['name']}")
 
             print("下载成功！")
-            idv_login_program = find_program(Program_dir, 'idv-login*')
             hash_url = get_download_url(idv_login_info, True)
             download_file(hash_url, f"{Program_dir}\\hash.sha256")
             with open(f"{Program_dir}\\hash.sha256", "r") as f:
@@ -346,10 +346,14 @@ if __name__ == '__main__':
             os.system("pause")
             sys.exit()
 
-    idv_login_program = idv_login_program[0]
-
+    idv_login_program = find_program(Program_dir, 'idv-login*')[0]
     print(f"成功找到idv-login，路径:{Program_dir}\\{idv_login_program}")
+
     check_hash(idv_login_info)
+    try:
+        os.remove(Program_dir + "\\hash.sha256")
+    except FileNotFoundError:
+        print()
 
     if idv_login_program:
         check_update(idv_login_info, idv_tool_info, Program_dir, idv_login_program)
