@@ -37,6 +37,11 @@ def find_program(directory, program_name):
     return [os.path.basename(programs) for programs in idv_login_programs]
 
 
+def disable_quick_edit():
+    kernel32 = ctypes.windll.kernel32
+    kernel32.SetConsoleMode(kernel32.GetStdHandle(-10), (0x4 | 0x80 | 0x20 | 0x2 | 0x10 | 0x1 | 0x00 | 0x100))
+
+
 def get_version(file_path):
     try:
         info = win32api.GetFileVersionInfo(file_path, '\\')
@@ -67,39 +72,6 @@ def Timer_module(config_file):
             print("请输入 'y' 或 'n'.")
 
 
-def get_file_hash(file_path: str, hash_method) -> str:
-    if not os.path.isfile(file_path):
-        print('文件不存在。')
-        return ''
-    h = hash_method()
-    with open(file_path, 'rb') as f:
-        while b := f.read(8192):
-            h.update(b)
-    return h.hexdigest()
-
-
-def check_hash(idv_login_release_info):
-    current_hash = get_file_hash(f"{Program_dir}\\{idv_login_program}", hashlib.sha256)
-    hash_from_config = load_from_config(CONFIG_FILE, "idv-login", "hash")
-
-    if hash_from_config is None or current_hash.upper() != hash_from_config.upper():
-        print("验证失败，可能是 idv-login 已损坏!")
-        print("正在尝试下载最新 idv-login...")
-        os.remove(f"{Program_dir}\\{idv_login_program}")
-
-        download_index = get_download_index(idv_login_release_info, False)
-        download_url = get_download_url(idv_login_release_info, False)
-        download_file(download_url, f"{Program_dir}\\{idv_login_release_info['assets'][download_index]['name']}")
-
-        hash_url = get_download_url(idv_login_release_info, True)
-        download_file(hash_url, f"{Program_dir}\\hash.sha256")
-        with open(f"{Program_dir}\\hash.sha256", "r") as f:
-            hash_value = f.read().strip()
-        save_to_config({'idv-login': {'hash': hash_value}}, CONFIG_FILE)
-    if current_hash.upper() == hash_from_config.upper():
-        return True
-
-
 def save_to_config(settings_dict, config_file):
     try:
         config = configparser.ConfigParser()
@@ -123,6 +95,17 @@ def load_from_config(config_path, section, key):
     config.read(config_path)
 
     return config.get(section, key, fallback=None)
+
+
+def get_file_hash(file_path: str, hash_method) -> str:
+    if not os.path.isfile(file_path):
+        print('文件不存在。')
+        return ''
+    h = hash_method()
+    with open(file_path, 'rb') as f:
+        while b := f.read(8192):
+            h.update(b)
+    return h.hexdigest()
 
 
 def get_info(mode, updater):
@@ -161,6 +144,29 @@ def get_info(mode, updater):
             return False
     except requests.exceptions.ConnectTimeout:
         print("获取api信息出现错误，请确保您的网络环境良好，本次更新跳过！")
+
+
+def get_download_index(info, get_hash):
+    end = "sha256" if get_hash else "exe"
+    version = "Py3.12" if int(platform.release()) > 7 else "Py3.8"
+
+    index = 0
+    while True:
+        try:
+            name = info['assets'][index]['name']
+            if name.startswith("idv-login") and name.endswith(end) and version in name:
+                break
+            index += 1
+        except IndexError:
+            print("错误")
+            break
+    return index
+
+
+def get_download_url(info, get_hash: bool):
+    index = get_download_index(info, get_hash)
+    download_url = info['assets'][index]['browser_download_url']
+    return download_url
 
 
 def download_file(url, save_path):
@@ -265,32 +271,26 @@ def check_update(idv_login_release_info, idv_tool_release_info, program_dir, pro
         print(f"更新失败!,错误代码: {e}")
 
 
-def disable_quick_edit():
-    kernel32 = ctypes.windll.kernel32
-    kernel32.SetConsoleMode(kernel32.GetStdHandle(-10), (0x4 | 0x80 | 0x20 | 0x2 | 0x10 | 0x1 | 0x00 | 0x100))
+def check_hash(idv_login_release_info):
+    current_hash = get_file_hash(f"{Program_dir}\\{idv_login_program}", hashlib.sha256)
+    hash_from_config = load_from_config(CONFIG_FILE, "idv-login", "hash")
 
+    if hash_from_config is None or current_hash.upper() != hash_from_config.upper():
+        print("验证失败，可能是 idv-login 已损坏!")
+        print("正在尝试下载最新 idv-login...")
+        os.remove(f"{Program_dir}\\{idv_login_program}")
 
-def get_download_index(info, get_hash):
-    end = "sha256" if get_hash else "exe"
-    version = "Py3.12" if int(platform.release()) > 7 else "Py3.8"
+        download_index = get_download_index(idv_login_release_info, False)
+        download_url = get_download_url(idv_login_release_info, False)
+        download_file(download_url, f"{Program_dir}\\{idv_login_release_info['assets'][download_index]['name']}")
 
-    index = 0
-    while True:
-        try:
-            name = info['assets'][index]['name']
-            if name.startswith("idv-login") and name.endswith(end) and version in name:
-                break
-            index += 1
-        except IndexError:
-            print("错误")
-            break
-    return index
-
-
-def get_download_url(info, get_hash: bool):
-    index = get_download_index(info, get_hash)
-    download_url = info['assets'][index]['browser_download_url']
-    return download_url
+        hash_url = get_download_url(idv_login_release_info, True)
+        download_file(hash_url, f"{Program_dir}\\hash.sha256")
+        with open(f"{Program_dir}\\hash.sha256", "r") as f:
+            hash_value = f.read().strip()
+        save_to_config({'idv-login': {'hash': hash_value}}, CONFIG_FILE)
+    if current_hash.upper() == hash_from_config.upper():
+        return True
 
 
 if __name__ == '__main__':
@@ -355,7 +355,6 @@ if __name__ == '__main__':
         os.remove(Program_dir + "\\hash.sha256")
     except FileNotFoundError:
         print()
-
     if idv_login_program:
         check_update(idv_login_info, idv_tool_info, Program_dir, idv_login_program)
 
