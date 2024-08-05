@@ -362,12 +362,13 @@ if __name__ == '__main__':
         else:
             timer_enable = load_from_config(CONFIG_FILE, "settings", "timer_enable")
 
+        idv_login_program = find_program(Program_dir, 'idv-login*')[0]
+
         if timer_enable:
             print("计时已开启。(若需要关闭计时器可以在本工具同级目录找到“config.ini”文件，将其值改为False即可)")
         else:
             print("计时未开启。(若需要开启计时器可以在本工具同级目录找到“config.ini”文件，将其值改为True即可)")
 
-        idv_login_program = find_program(Program_dir, 'idv-login*')[0]
         print(f"成功找到idv-login，路径:{Program_dir}\\{idv_login_program}")
 
         if ctypes.windll.shell32.IsUserAnAdmin():
