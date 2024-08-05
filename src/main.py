@@ -273,7 +273,7 @@ def check_update(idv_tool_release_info, program_dir):
 
 
 def check_hash(idv_login_release_info):
-    current_hash = get_file_hash(f"{Program_dir}\\{idv_login_program}", hashlib.sha256)
+    current_hash = get_file_hash(f"{Program_dir}\\{idv_login_program[0]}", hashlib.sha256)
     hash_from_config = load_from_config(CONFIG_FILE, "idv-login", "hash")
 
     if hash_from_config is None or current_hash.upper() != hash_from_config.upper():
