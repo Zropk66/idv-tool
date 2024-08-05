@@ -200,7 +200,8 @@ def download_file(url, save_path):
         sys.exit()
 
 
-def check_update(idv_login_release_info, idv_tool_release_info, program_dir, program_name):
+def check_update(idv_tool_release_info, program_dir):
+
     latest_idv_tool_version = idv_tool_release_info['tag_name']
     if __version__ < latest_idv_tool_version:
         print("检测到本工具存在新版本！")
@@ -236,39 +237,39 @@ def check_update(idv_login_release_info, idv_tool_release_info, program_dir, pro
         os.system("start " + program_dir + "\\updater.exe")
         sys.exit()
 
-    try:
-        # if int(platform.release()) <= 7:
-        #     download_url = idv_login_release_info['assets'][2]['browser_download_url']
-        # else:
-        #     download_url = idv_login_release_info['assets'][0]['browser_download_url']
-
-        file_path = program_dir + "\\" + program_name
-        current_version = get_version(file_path)
-        version = idv_login_release_info['tag_name']
-        latest_version = version[1:6]
-
-        if current_version == latest_version:
-            return True
-        else:
-            print("检测到 idv-login 存在新版本！")
-            try:
-                os.remove(file_path)
-                print("正在更新...")
-                download_index = get_download_index(idv_login_release_info, False)
-                download_file(get_download_url(idv_login_info, False),
-                              f"{Program_dir}\\{idv_login_release_info['assets'][download_index]['name']}")
-                # if int(platform.release()) <= 7:
-                #     download_update(download_url, f"{Program_dir}\\{idv_login_release_info['assets'][2]['name']}")
-                # else:
-                #     download_update(download_url, f"{Program_dir}\\{idv_login_release_info['assets'][0]['name']}")
-                print("更新成功！")
-
-                return idv_login_release_info
-            except OSError as OSErrorPrint:
-                print(f"删除旧文件时出错: {OSErrorPrint}")
-            return False
-    except Exception as e:
-        print(f"更新失败!,错误代码: {e}")
+    # try:
+    #     # if int(platform.release()) <= 7:
+    #     #     download_url = idv_login_release_info['assets'][2]['browser_download_url']
+    #     # else:
+    #     #     download_url = idv_login_release_info['assets'][0]['browser_download_url']
+    #
+    #     file_path = program_dir + "\\" + program_name
+    #     current_version = get_version(file_path)
+    #     version = idv_login_release_info['tag_name']
+    #     latest_version = version[1:6]
+    #
+    #     if current_version == latest_version:
+    #         return True
+    #     else:
+    #         print("检测到 idv-login 存在新版本！")
+    #         try:
+    #             os.remove(file_path)
+    #             print("正在更新...")
+    #             download_index = get_download_index(idv_login_release_info, False)
+    #             download_file(get_download_url(idv_login_info, False),
+    #                           f"{Program_dir}\\{idv_login_release_info['assets'][download_index]['name']}")
+    #             # if int(platform.release()) <= 7:
+    #             #     download_update(download_url, f"{Program_dir}\\{idv_login_release_info['assets'][2]['name']}")
+    #             # else:
+    #             #     download_update(download_url, f"{Program_dir}\\{idv_login_release_info['assets'][0]['name']}")
+    #             print("更新成功！")
+    #
+    #             return idv_login_release_info
+    #         except OSError as OSErrorPrint:
+    #             print(f"删除旧文件时出错: {OSErrorPrint}")
+    #         return False
+    # except Exception as e:
+    #     print(f"更新失败!,错误代码: {e}")
 
 
 def check_hash(idv_login_release_info):
@@ -276,7 +277,7 @@ def check_hash(idv_login_release_info):
     hash_from_config = load_from_config(CONFIG_FILE, "idv-login", "hash")
 
     if hash_from_config is None or current_hash.upper() != hash_from_config.upper():
-        print("验证失败，可能是 idv-login 已损坏!")
+        print("验证失败，可能是 idv-login 已损坏 或 已更新...!")
         print("正在尝试下载最新 idv-login...")
         os.remove(f"{Program_dir}\\{idv_login_program}")
 
@@ -294,132 +295,133 @@ def check_hash(idv_login_release_info):
 
 
 if __name__ == '__main__':
-    # try:
-    __version__ = '1.4.5'
-    CONFIG_FILE = 'config.ini'
-    image_source = "https://mirror.ghproxy.com"
+    try:
+        __version__ = '1.4.6'
+        CONFIG_FILE = 'config.ini'
+        image_source = "https://mirror.ghproxy.com"
 
-    idv_login_info = get_info("idv-login", False)
-    idv_tool_info = get_info("idv-tool", False)
+        idv_login_info = get_info("idv-login", False)
+        idv_tool_info = get_info("idv-tool", False)
 
-    Program_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-    dwrg_program = find_program(Program_dir, 'dwrg.exe')
+        Program_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+        dwrg_program = find_program(Program_dir, 'dwrg.exe')
 
-    os.system(f"title 第五人格小助手 - 当前版本：{__version__}")
+        os.system(f"title 第五人格小助手 - 当前版本：{__version__}")
 
-    if not dwrg_program:
-        print("当前文件夹未找到第五人格， 请将程序放置在第五人格根目录后再运行！")
-        os.system("pause")
-        sys.exit()
-    else:
-        print(f"成功找到第五人格，路径：{Program_dir}\\{dwrg_program[0]}")
-
-    idv_login_program = find_program(Program_dir, 'idv-login*')
-
-    if len(idv_login_program) > 1:
-        print("识别到当前目录有多个 idv-login 将自动删除并下载最新版本！")
-        for program in idv_login_program:
-            os.remove(program)
-        idv_login_program.clear()
-    elif not idv_login_program:
-        print("未在当前目录找到idv-login正在尝试下载")
-
-    if not idv_login_program:
-        try:
-            download_index = get_download_index(idv_login_info, False)
-            download_file(get_download_url(idv_login_info, False),
-                          f"{Program_dir}\\{idv_login_info['assets'][download_index]['name']}")
-            # if int(platform.release()) <= 7:
-            #     download_url = release_info['assets'][2]['browser_download_url']
-            #     download_update(download_url, f"{Program_dir}\\{release_info['assets'][2]['name']}")
-            # else:
-            #     download_url = release_info['assets'][0]['browser_download_url']
-            #     download_update(download_url, f"{Program_dir}\\{release_info['assets'][0]['name']}")
-
-            print("下载成功！")
-            hash_url = get_download_url(idv_login_info, True)
-            download_file(hash_url, f"{Program_dir}\\hash.sha256")
-            with open(f"{Program_dir}\\hash.sha256", "r") as f:
-                hash_value = f.read().strip()
-            save_to_config({'idv-login': {'hash': hash_value}}, CONFIG_FILE)
-        except Exception as e:
-            print(f"下载失败!: {e}")
+        if not dwrg_program:
+            print("当前文件夹未找到第五人格， 请将程序放置在第五人格根目录后再运行！")
             os.system("pause")
             sys.exit()
+        else:
+            print(f"成功找到第五人格，路径：{Program_dir}\\{dwrg_program[0]}")
 
-    idv_login_program = find_program(Program_dir, 'idv-login*')[0]
-    print(f"成功找到idv-login，路径:{Program_dir}\\{idv_login_program}")
+        idv_login_program = find_program(Program_dir, 'idv-login*')
 
-    check_hash(idv_login_info)
-    try:
-        os.remove(Program_dir + "\\hash.sha256")
-    except FileNotFoundError:
-        print()
-    if idv_login_program:
-        check_update(idv_login_info, idv_tool_info, Program_dir, idv_login_program)
+        if len(idv_login_program) > 1:
+            print("识别到当前目录有多个 idv-login 将自动删除并下载最新版本！")
+            for program in idv_login_program:
+                os.remove(program)
+            idv_login_program.clear()
+        elif not idv_login_program:
+            print("未在当前目录找到idv-login正在尝试下载")
 
-    if not os.path.exists(CONFIG_FILE):
-        timer_enable = Timer_module(CONFIG_FILE)
-    else:
-        timer_enable = load_from_config(CONFIG_FILE, "settings", "timer_enable")
+        if not idv_login_program:
+            try:
+                download_index = get_download_index(idv_login_info, False)
+                download_file(get_download_url(idv_login_info, False),
+                              f"{Program_dir}\\{idv_login_info['assets'][download_index]['name']}")
+                # if int(platform.release()) <= 7:
+                #     download_url = release_info['assets'][2]['browser_download_url']
+                #     download_update(download_url, f"{Program_dir}\\{release_info['assets'][2]['name']}")
+                # else:
+                #     download_url = release_info['assets'][0]['browser_download_url']
+                #     download_update(download_url, f"{Program_dir}\\{release_info['assets'][0]['name']}")
 
-    if timer_enable:
-        print("计时已开启。(若需要关闭计时器可以在本工具同级目录找到“config.ini”文件，将其值改为False即可)")
-    else:
-        print("计时未开启。(若需要开启计时器可以在本工具同级目录找到“config.ini”文件，将其值改为True即可)")
-
-    if ctypes.windll.shell32.IsUserAnAdmin():
-        disable_quick_edit()
-        print("正在启动登录工具...")
-        os.system("start " + Program_dir + "\\" + idv_login_program)
-        while not is_port_in_use(443):
-            time.sleep(1)
-        print("登录工具启动成功，正在唤醒第五人格！")
-        os.system("start " + Program_dir + "\\dwrg.exe")
-
-        # print("正在等待第五人格运行... (第五人格若在 10 秒后还未启动程序将自动关闭)")
-
-        for timing in range(10):
-            if is_process_running("dwrg.exe"):
-                print("第五人格已启动！")
-                break
-            elif timing == 9:
-                print("第五人格启动超时，程序已退出！")
+                print("下载成功！")
+                hash_url = get_download_url(idv_login_info, True)
+                download_file(hash_url, f"{Program_dir}\\hash.sha256")
+                with open(f"{Program_dir}\\hash.sha256", "r") as f:
+                    hash_value = f.read().strip()
+                save_to_config({'idv-login': {'hash': hash_value}}, CONFIG_FILE)
+            except Exception as e:
+                print(f"下载失败!: {e}")
                 os.system("pause")
                 sys.exit()
-            time.sleep(1)
+
+        check_hash(idv_login_info)
+
+        try:
+            os.remove(Program_dir + "\\hash.sha256")
+        except FileNotFoundError:
+            print()
+        if idv_login_program:
+            check_update(idv_tool_info, Program_dir)
+
+        if not os.path.exists(CONFIG_FILE):
+            timer_enable = Timer_module(CONFIG_FILE)
+        else:
+            timer_enable = load_from_config(CONFIG_FILE, "settings", "timer_enable")
 
         if timer_enable:
-            second = 0
-            minute = 0
-            hour = 0
-
-            time.sleep(5)
-
-            while is_process_running("dwrg.exe"):
-                if second >= 60:
-                    second -= 60
-                    minute += 1
-                elif minute >= 60:
-                    minute -= 60
-                    hour += 1
-                os.system("cls")
-                print("第五人格运行中...")
-                print(f"已运行 {str(hour)} 时 {str(minute)} 分 {str(second)} 秒")
-                second += 1
-                time.sleep(1)
+            print("计时已开启。(若需要关闭计时器可以在本工具同级目录找到“config.ini”文件，将其值改为False即可)")
         else:
-            sys.exit()
+            print("计时未开启。(若需要开启计时器可以在本工具同级目录找到“config.ini”文件，将其值改为True即可)")
 
-        print("第五人格已关闭...")
-        if is_process_running(idv_login_program):
-            os.system(f"taskkill /im {idv_login_program} /f")
-            print("登录工具已关闭已关闭...")
-        print("程序即将关闭...")
-        time.sleep(1)
-        sys.exit()
-    else:
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
-# except Exception as e:
-#     print(f"程序出现未知错误，现已退出！错误代码:{e}")
-#     os.system("pause")
+        idv_login_program = find_program(Program_dir, 'idv-login*')[0]
+        print(f"成功找到idv-login，路径:{Program_dir}\\{idv_login_program}")
+
+        if ctypes.windll.shell32.IsUserAnAdmin():
+            disable_quick_edit()
+            print("正在启动登录工具...")
+            os.system("start " + Program_dir + "\\" + idv_login_program)
+            while not is_port_in_use(443):
+                time.sleep(1)
+            print("登录工具启动成功，正在唤醒第五人格！")
+            os.system("start " + Program_dir + "\\dwrg.exe")
+
+            # print("正在等待第五人格运行... (第五人格若在 10 秒后还未启动程序将自动关闭)")
+
+            for timing in range(10):
+                if is_process_running("dwrg.exe"):
+                    print("第五人格已启动！")
+                    break
+                elif timing == 9:
+                    print("第五人格启动超时，程序已退出！")
+                    os.system("pause")
+                    sys.exit()
+                time.sleep(1)
+
+            if timer_enable:
+                second = 0
+                minute = 0
+                hour = 0
+
+                time.sleep(5)
+
+                while is_process_running("dwrg.exe"):
+                    if second >= 60:
+                        second -= 60
+                        minute += 1
+                    elif minute >= 60:
+                        minute -= 60
+                        hour += 1
+                    os.system("cls")
+                    print("第五人格运行中...")
+                    print(f"已运行 {str(hour)} 时 {str(minute)} 分 {str(second)} 秒")
+                    second += 1
+                    time.sleep(1)
+            else:
+                sys.exit()
+
+            print("第五人格已关闭...")
+            if is_process_running(idv_login_program):
+                os.system(f"taskkill /im {idv_login_program} /f")
+                print("登录工具已关闭已关闭...")
+            print("程序即将关闭...")
+            time.sleep(1)
+            sys.exit()
+        else:
+            ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
+    except Exception as e:
+        print(f"程序出现未知错误，现已退出！错误代码:{e}")
+        os.system("pause")
