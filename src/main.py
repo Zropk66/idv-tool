@@ -373,7 +373,7 @@ class operational_status:
 
 if __name__ == '__main__':
     # try:
-    __version__ = '1.5.0'
+    __version__ = '1.5.1'
     CONFIG_FILE = 'config.ini'
     image_source = "https://mirror.ghproxy.com"
 
