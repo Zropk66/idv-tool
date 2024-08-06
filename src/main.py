@@ -300,7 +300,7 @@ class operational_status:
     def __init__(self):
         win32api.SetConsoleCtrlHandler(self.on_exit, True)
         self.start_time = datetime.now()
-        self.play_log_file = f"{Program_dir}\\play_log.txt"
+        self.play_log_file = f"{Program_dir}\\play log.txt"
 
     def get_running_time(self):
         current_time = datetime.now()
@@ -318,17 +318,32 @@ class operational_status:
         minutes = (time_diff.seconds % 3600) // 60
         seconds = time_diff.seconds % 60
 
-        config = configparser.ConfigParser()
-
         today_date = time.strftime('%Y-%m-%d', time.localtime())
-        config[today_date] = {
-            '开始时间': self.start_time.strftime('%Y-%m-%d %H:%M:%S'),
-            '结束时间': end_time.strftime('%Y-%m-%d %H:%M:%S'),
-            '游玩时长': f"{hours} 时 {minutes} 分 {seconds} 秒"
-        }
 
-        with open(self.play_log_file, 'a') as configfile:
-            config.write(configfile)
+        fond_write = (f"开始时间: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+                      f"结束时间: {end_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+                      f"游玩时长: {hours} 时 {minutes} 分 {seconds} 秒\n\n")
+        no_fond_write = (f"[{today_date}]\n"
+                         f"开始时间: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+                         f"结束时间: {end_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+                         f"游玩时长: {hours} 时 {minutes} 分 {seconds} 秒\n\n")
+
+        if not os.path.exists(self.play_log_file):
+            open(self.play_log_file, 'w').close()
+
+        found = False
+        with open(self.play_log_file, 'r+', encoding='utf-8') as file:
+            allLines = file.readlines()
+
+            for line in reversed(allLines):
+                if f"[{today_date}]" in line:
+                    found = True
+                    break
+            if not found:
+                file.write(no_fond_write)
+            else:
+                file.write(fond_write)
+            file.close()
 
     def run(self):
         try:
