@@ -425,7 +425,7 @@ def read_last_line(file_name):
 
 if __name__ == '__main__':
     # try:
-    __version__ = '1.5.1'
+    __version__ = '1.5.2'
     CONFIG_FILE = 'config.ini'
     image_source = "https://mirror.ghproxy.com"
 
