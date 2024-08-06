@@ -385,10 +385,15 @@ class operational_status:
     def run(self):
         try:
             while is_process_running("dwrg.exe"):
-                os.system("cls")  # 清空控制台输出
+                os.system("cls")
                 print("第五人格运行中...")
                 print(f"已运行 {self.get_running_time()}")
                 time.sleep(1)
+
+                if is_process_running(idv_login_program):
+                    log = read_last_line(idv_login_log_path)
+                    if "('verify_status', '1')])" in log:
+                        os.system(f"taskkill /im {idv_login_program} /f")
 
             print("第五人格已关闭...")
             if is_process_running(idv_login_program):
