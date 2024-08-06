@@ -384,16 +384,20 @@ class operational_status:
 
     def run(self):
         try:
+            print("正在等待游戏登录")
+            while True:
+                log = read_last_line("C:\\ProgramData\\idv-login\\log.txt")
+                if "('verify_status', '1')])" in log:
+                    print("游戏登录成功！")
+                    os.system(f"taskkill /im {idv_login_program} /f")
+                    break
+                time.sleep(1.5)
+
             while is_process_running("dwrg.exe"):
                 os.system("cls")
                 print("第五人格运行中...")
                 print(f"已运行 {self.get_running_time()}")
                 time.sleep(1)
-
-                if is_process_running(idv_login_program):
-                    log = read_last_line(idv_login_log_path)
-                    if "('verify_status', '1')])" in log:
-                        os.system(f"taskkill /im {idv_login_program} /f")
 
             print("第五人格已关闭...")
             if is_process_running(idv_login_program):
@@ -541,10 +545,9 @@ if __name__ == '__main__':
             status.run()
         else:
             if auto_exit_idv_login:
-                idv_login_log_path = "C:\\ProgramData\\idv-login\\log.txt"
                 print("正在等待游戏登录")
                 while True:
-                    log = read_last_line(idv_login_log_path)
+                    log = read_last_line("C:\\ProgramData\\idv-login\\log.txt")
                     if "('verify_status', '1')])" in log:
                         print("游戏登录成功！")
                         os.system(f"taskkill /im {idv_login_program} /f")
