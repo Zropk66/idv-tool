@@ -6,11 +6,9 @@ import os
 import platform
 import socket
 import sys
-import threading
 import time
 from datetime import datetime
 
-import keyboard
 import psutil
 import requests
 import win32api
@@ -69,21 +67,7 @@ def Timer_module(config_file):
     while True:
         choice = input("是否开启计时？（y/n）: ").strip().lower()
         if choice in ['y', 'n']:
-            save_to_config({'settings': {'timer module': str(choice == 'y')}}, config_file)
-            return choice == 'y'
-        else:
-            print("请输入 'y' 或 'n'.")
-
-
-def auto_exit_idv_login_module(config_file):
-    while True:
-        choice = input("是否开启自动退出idv-login？（y/n）: ").strip().lower()
-        if choice in ['y', 'n']:
-            save_to_config({'settings': {'auto exit idv-login': str(choice == 'y')}}, config_file)
-            config = configparser.ConfigParser()
-            config.read(config_file)
-
-            config.set('settings', 'auto exit idv-login', str(choice == 'y'))
+            save_to_config({'settings': {'timer_enable': choice == 'y'}}, config_file)
             return choice == 'y'
         else:
             print("请输入 'y' 或 'n'.")
@@ -94,37 +78,24 @@ def save_to_config(settings_dict, config_file):
         config = configparser.ConfigParser()
         config.read(config_file)
 
-        # if insert:
-        for section, settings in settings_dict.items():
+        for section, options in settings_dict.items():
             if section not in config:
                 config[section] = {}
-            for key, value in settings.items():
-                config.set(section, key, value)
-        # else:
-        #     for section, options in settings_dict.items():
-        #         if section not in config:
-        #             config[section] = {}
-        #         for key, value in options.items():
-        #             config[section][key] = str(value)
+            for key, value in options.items():
+                config[section][key] = str(value)
 
         with open(config_file, 'w') as configfile:
             config.write(configfile)
-        # print(f"设置已保存到 {config_file} 文件中。")
+        print(f"设置已保存到 {config_file} 文件中。")
     except KeyboardInterrupt:
         print("检测到用户退出程序，输入中断！")
 
 
 def load_from_config(config_path, section, key):
-    try:
-        config = configparser.ConfigParser()
-        config.read(config_path)
+    config = configparser.ConfigParser()
+    config.read(config_path)
 
-        result = config.get(section, key)
-        if result in ['True', 'False']:
-            return eval(result)
-        return result
-    except (configparser.NoOptionError, configparser.NoSectionError):
-        return None
+    return config.get(section, key, fallback=None)
 
 
 def get_file_hash(file_path: str, hash_method) -> str:
@@ -203,8 +174,9 @@ def download_file(url, save_path):
     try:
         try:
             os.remove(save_path)
+            print()
         except FileNotFoundError:
-            pass
+            print()
 
         socket.gethostbyname(image_source[8:])
         print("使用镜像源下载！")
@@ -301,18 +273,10 @@ def check_update(idv_tool_release_info, program_dir):
 
 
 def check_hash(idv_login_release_info):
-    current_hash = str(get_file_hash(f"{Program_dir}\\{idv_login_program[0]}", hashlib.sha256))
-    hash_from_config = str(load_from_config(CONFIG_FILE, "idv-login", "hash"))
+    current_hash = get_file_hash(f"{Program_dir}\\{idv_login_program[0]}", hashlib.sha256)
+    hash_from_config = load_from_config(CONFIG_FILE, "idv-login", "hash")
 
-    if hash_from_config is None or os.path.exists(f"{Program_dir}\\hash.sha256"):
-        hash_url = get_download_url(idv_login_release_info, True)
-        open(f'{Program_dir}\\hash.sha256', 'wb').write(requests.get(hash_url, stream=True).content)
-        with open(f"{Program_dir}\\hash.sha256", "r") as f:
-            hash_value = f.read().strip()
-        save_to_config({'idv-login': {'hash': hash_value}}, CONFIG_FILE)
-        hash_from_config = hash_value
-
-    elif current_hash.upper() != hash_from_config.upper():
+    if hash_from_config is None or current_hash.upper() != hash_from_config.upper():
         print("验证失败，可能是 idv-login 已损坏 或 已更新...!")
         print("正在尝试下载最新 idv-login...")
         os.remove(f"{Program_dir}\\{idv_login_program[0]}")
@@ -328,7 +292,6 @@ def check_hash(idv_login_release_info):
         with open(f"{Program_dir}\\hash.sha256", "r") as f:
             hash_value = f.read().strip()
         save_to_config({'idv-login': {'hash': hash_value}}, CONFIG_FILE)
-
     if current_hash.upper() == hash_from_config.upper():
         return True
 
@@ -384,15 +347,6 @@ class operational_status:
 
     def run(self):
         try:
-            print("正在等待游戏登录")
-            while True:
-                log = read_last_line("C:\\ProgramData\\idv-login\\log.txt")
-                if "('verify_status', '1')])" in log:
-                    print("游戏登录成功！")
-                    os.system(f"taskkill /im {idv_login_program} /f")
-                    break
-                time.sleep(1.5)
-
             while is_process_running("dwrg.exe"):
                 os.system("cls")
                 print("第五人格运行中...")
@@ -410,31 +364,16 @@ class operational_status:
         except KeyboardInterrupt:
             # self.on_exit(self)
             print("检测到强制退出！")
-            time.sleep(1)
+            os.system("pause")
 
     def on_exit(self, signal_type):
         print("检测到强制退出！")
-
-
-def keyboard_listener():
-    while True:
-        if keyboard.is_pressed('tab+shift'):
-            os.system(f"start {Program_dir}\\config.ini")
-            time.sleep(1)
-
-
-def read_last_line(file_name):
-    with open(file_name, 'rb') as file:
-        file.seek(-2, 2)
-        while file.read(1) != b'\n':
-            file.seek(-2, 1)
-        last_line = file.readline().decode('utf-8')
-    return last_line
+        os.system("pause")
 
 
 if __name__ == '__main__':
     # try:
-    __version__ = '1.5.2'
+    __version__ = '1.5.1'
     CONFIG_FILE = 'config.ini'
     image_source = "https://mirror.ghproxy.com"
 
@@ -450,6 +389,8 @@ if __name__ == '__main__':
         print("当前文件夹未找到第五人格， 请将程序放置在第五人格根目录后再运行！")
         os.system("pause")
         sys.exit()
+    else:
+        print(f"成功找到第五人格，路径：{Program_dir}\\{dwrg_program[0]}")
 
     idv_login_program = find_program(Program_dir, 'idv-login*')
 
@@ -489,31 +430,22 @@ if __name__ == '__main__':
     try:
         os.remove(Program_dir + "\\hash.sha256")
     except FileNotFoundError:
-        pass
+        print()
     if idv_login_program:
         check_update(idv_tool_info, Program_dir)
 
-    if not os.path.exists(CONFIG_FILE) or load_from_config(CONFIG_FILE, "settings", "timer module") not in [True,
-                                                                                                            False]:
+    if not os.path.exists(CONFIG_FILE):
         timer_enable = Timer_module(CONFIG_FILE)
     else:
-        timer_enable = bool(load_from_config(CONFIG_FILE, "settings", "timer module"))
-
-    if not os.path.exists(CONFIG_FILE) or load_from_config(CONFIG_FILE, "settings", "auto exit idv-login") not in [True,
-                                                                                                                   False]:
-        auto_exit_idv_login = auto_exit_idv_login_module(CONFIG_FILE)
-    else:
-        auto_exit_idv_login = bool(load_from_config(CONFIG_FILE, "settings", "auto exit idv-login"))
+        timer_enable = load_from_config(CONFIG_FILE, "settings", "timer_enable")
 
     idv_login_program = find_program(Program_dir, 'idv-login*')[0]
-    os.system("cls")
-    print(f"成功找到第五人格，路径：{Program_dir}\\{dwrg_program[0]}")
     print(f"成功找到idv-login，路径:{Program_dir}\\{idv_login_program}")
 
-    # if timer_enable:
-    #     print("计时已开启。(若需要关闭计时器可以在本工具同级目录找到“config.ini”文件，将其值改为False即可)")
-    # else:
-    #     print("计时未开启。(若需要开启计时器可以在本工具同级目录找到“config.ini”文件，将其值改为True即可)")
+    if timer_enable:
+        print("计时已开启。(若需要关闭计时器可以在本工具同级目录找到“config.ini”文件，将其值改为False即可)")
+    else:
+        print("计时未开启。(若需要开启计时器可以在本工具同级目录找到“config.ini”文件，将其值改为True即可)")
 
     if ctypes.windll.shell32.IsUserAnAdmin():
         disable_quick_edit()
@@ -536,25 +468,8 @@ if __name__ == '__main__':
                 sys.exit()
             time.sleep(1)
 
-        tab_thread = threading.Thread(target=keyboard_listener)
-        tab_thread.daemon = True
-        tab_thread.start()
-
-        if timer_enable:
-            status = operational_status()
-            status.run()
-        else:
-            if auto_exit_idv_login:
-                print("正在等待游戏登录")
-                while True:
-                    log = read_last_line("C:\\ProgramData\\idv-login\\log.txt")
-                    if "('verify_status', '1')])" in log:
-                        print("游戏登录成功！")
-                        os.system(f"taskkill /im {idv_login_program} /f")
-                        break
-                    time.sleep(1.5)
-            print("程序退出！")
-            sys.exit()
+        status = operational_status()
+        status.run() if timer_enable else sys.exit()
 
     else:
         ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
