@@ -31,8 +31,8 @@ def is_process_running(process_name):
     return False
 
 
-def find_program(directory, program_name):
-    pattern = os.path.join(directory, program_name)
+def find_program(program_name):
+    pattern = os.path.join(Program_dir, program_name)
     idv_login_programs = glob.glob(pattern)
     # program_names = [os.path.basename(programs) for programs in idv_login_programs]
     return [os.path.basename(programs) for programs in idv_login_programs]
@@ -84,18 +84,20 @@ def save_to_config(settings_dict, config_file):
             for key, value in options.items():
                 config[section][key] = str(value)
 
-        with open(config_file, 'w') as configfile:
-            config.write(configfile)
+        config.write(open(config_file, 'w'))
         print(f"设置已保存到 {config_file} 文件中。")
     except KeyboardInterrupt:
         print("检测到用户退出程序，输入中断！")
 
 
-def load_from_config(config_path, section, key):
+def load_from_config(section, key):
     config = configparser.ConfigParser()
-    config.read(config_path)
+    config.read(CONFIG_FILE)
 
-    return config.get(section, key, fallback=None)
+    value = config.get(section, key, fallback=None)
+    if value in ("True", "False"):
+        value = eval(value)
+    return value
 
 
 def get_file_hash(file_path: str, hash_method) -> str:
@@ -159,7 +161,6 @@ def get_download_index(info, get_hash):
                 break
             index += 1
         except IndexError:
-            print("错误")
             break
     return index
 
@@ -176,7 +177,7 @@ def download_file(url, save_path):
             os.remove(save_path)
             print()
         except FileNotFoundError:
-            print()
+            pass
 
         socket.gethostbyname(image_source[8:])
         print("使用镜像源下载！")
@@ -194,8 +195,8 @@ def download_file(url, save_path):
                 progress_bar.update(len(data))
                 f.write(data)
         progress_bar.close()
-    except KeyboardInterrupt:
-        print("检测到程序被强制关闭...")
+    except Exception:
+        print("下载异常！")
         os.remove(save_path)
         time.sleep(3)
         sys.exit()
@@ -206,7 +207,7 @@ def check_update(idv_tool_release_info, program_dir):
     if __version__ < latest_idv_tool_version:
         print("检测到本工具存在新版本！")
 
-        if not find_program(Program_dir, 'updater.exe'):
+        if not find_program('updater.exe'):
             idv_tool_update_info = get_info("idv-tool", True)
             index = 0
 
@@ -272,25 +273,28 @@ def check_update(idv_tool_release_info, program_dir):
     #     print(f"更新失败!,错误代码: {e}")
 
 
-def check_hash(idv_login_release_info):
+def check_hash():
     current_hash = get_file_hash(f"{Program_dir}\\{idv_login_program[0]}", hashlib.sha256)
-    hash_from_config = load_from_config(CONFIG_FILE, "idv-login", "hash")
+    hash_from_config = load_from_config("idv-login", "hash")
 
-    if hash_from_config is None or current_hash.upper() != hash_from_config.upper():
+    if hash_from_config is None:
+        hash_url = get_download_url(idv_login_info, True)
+        open(f'{Program_dir}\\hash.sha256', 'wb').write(requests.get(hash_url, stream=True).content)
+        hash_value = open(f"{Program_dir}\\hash.sha256", "r").read().strip()
+        save_to_config({'idv-login': {'hash': hash_value}}, CONFIG_FILE)
+        hash_from_config = hash_value
+    elif current_hash.upper() != hash_from_config.upper():
         print("验证失败，可能是 idv-login 已损坏 或 已更新...!")
         print("正在尝试下载最新 idv-login...")
         os.remove(f"{Program_dir}\\{idv_login_program[0]}")
 
-        download_index = get_download_index(idv_login_release_info, False)
-        download_url = get_download_url(idv_login_release_info, False)
+        idv_login_download_index = get_download_index(idv_login_info, False)
+        download_url = get_download_url(idv_login_info, False)
+        download_file(download_url, f"{Program_dir}\\{idv_login_info['assets'][idv_login_download_index]['name']}")
 
-        download_file(download_url, f"{Program_dir}\\{idv_login_release_info['assets'][download_index]['name']}")
-
-        hash_url = get_download_url(idv_login_release_info, True)
+        hash_url = get_download_url(idv_login_info, True)
         open(f'{Program_dir}\\hash.sha256', 'wb').write(requests.get(hash_url, stream=True).content)
-        # download_file(hash_url, f"{Program_dir}\\hash.sha256")
-        with open(f"{Program_dir}\\hash.sha256", "r") as f:
-            hash_value = f.read().strip()
+        hash_value = open(f"{Program_dir}\\hash.sha256", "r").read().strip()
         save_to_config({'idv-login': {'hash': hash_value}}, CONFIG_FILE)
     if current_hash.upper() == hash_from_config.upper():
         return True
@@ -303,21 +307,18 @@ class operational_status:
         self.play_log_file = f"{Program_dir}\\play log.txt"
 
     def get_running_time(self):
+        global hours, minutes, seconds
         current_time = datetime.now()
         time_diff = current_time - self.start_time
-        hours = time_diff.seconds // 3600
-        minutes = (time_diff.seconds % 3600) // 60
-        seconds = time_diff.seconds % 60
+        total_seconds = int(time_diff.total_seconds())
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
         return f"{hours} 时 {minutes} 分 {seconds} 秒"
 
     def save_playing_time(self):
+        global hours, minutes, seconds
         end_time = datetime.now()
-
-        time_diff = end_time - self.start_time
-        hours = time_diff.seconds // 3600
-        minutes = (time_diff.seconds % 3600) // 60
-        seconds = time_diff.seconds % 60
-
         today_date = time.strftime('%Y-%m-%d', time.localtime())
 
         fond_write = (f"开始时间: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
@@ -327,7 +328,6 @@ class operational_status:
                          f"开始时间: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
                          f"结束时间: {end_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
                          f"游玩时长: {hours} 时 {minutes} 分 {seconds} 秒\n\n")
-
         if not os.path.exists(self.play_log_file):
             open(self.play_log_file, 'w').close()
 
@@ -347,11 +347,12 @@ class operational_status:
 
     def run(self):
         try:
+            os.system("cls")
             while is_process_running("dwrg.exe"):
-                os.system("cls")
-                print("第五人格运行中...")
-                print(f"已运行 {self.get_running_time()}")
                 time.sleep(1)
+                print("\033[0;0H第五人格运行中...")
+                print(f"已运行 {self.get_running_time()}")
+            self.save_playing_time()
 
             print("第五人格已关闭...")
             if is_process_running(idv_login_program):
@@ -359,29 +360,29 @@ class operational_status:
                 print("登录工具已关闭已关闭...")
             print("程序即将关闭...")
             time.sleep(1)
-            self.save_playing_time()
             sys.exit()
         except KeyboardInterrupt:
-            # self.on_exit(self)
-            print("检测到强制退出！")
-            os.system("pause")
+            print("检测到强制退出！游玩时间将无法保存！")
+            time.sleep(1)
 
     def on_exit(self, signal_type):
-        print("检测到强制退出！")
-        os.system("pause")
+        print("检测到强制退出！游玩时间将无法保存！")
+        time.sleep(1)
+        return self
 
 
 if __name__ == '__main__':
     # try:
-    __version__ = '1.5.1'
+    __version__ = '1.5.2'
     CONFIG_FILE = 'config.ini'
     image_source = "https://mirror.ghproxy.com"
+    global hours, minutes, seconds
 
     idv_login_info = get_info("idv-login", False)
     idv_tool_info = get_info("idv-tool", False)
 
     Program_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-    dwrg_program = find_program(Program_dir, 'dwrg.exe')
+    dwrg_program = find_program('dwrg.exe')
 
     os.system(f"title 第五人格小助手 - 当前版本：{__version__}")
 
@@ -392,7 +393,10 @@ if __name__ == '__main__':
     else:
         print(f"成功找到第五人格，路径：{Program_dir}\\{dwrg_program[0]}")
 
-    idv_login_program = find_program(Program_dir, 'idv-login*')
+    if not os.path.exists(f"{Program_dir}\\config.ini"):
+        open(f"{Program_dir}\\config.ini", "w").write("")
+
+    idv_login_program = find_program('idv-login*')
 
     if len(idv_login_program) > 1:
         print("识别到当前目录有多个 idv-login 将自动删除并下载最新版本！")
@@ -405,7 +409,8 @@ if __name__ == '__main__':
     if not idv_login_program:
         try:
             download_index = get_download_index(idv_login_info, False)
-            download_file(get_download_url(idv_login_info, False),
+            download_url = get_download_url(idv_login_info, False)
+            download_file(download_url,
                           f"{Program_dir}\\{idv_login_info['assets'][download_index]['name']}")
             # if int(platform.release()) <= 7:
             #     download_url = release_info['assets'][2]['browser_download_url']
@@ -417,29 +422,28 @@ if __name__ == '__main__':
             print("下载成功！")
             hash_url = get_download_url(idv_login_info, True)
             download_file(hash_url, f"{Program_dir}\\hash.sha256")
-            with open(f"{Program_dir}\\hash.sha256", "r") as f:
-                hash_value = f.read().strip()
+            hash_value = open(f"{Program_dir}\\hash.sha256", "r").read().strip()
             save_to_config({'idv-login': {'hash': hash_value}}, CONFIG_FILE)
         except Exception as e:
             print(f"下载失败!: {e}")
             os.system("pause")
             sys.exit()
 
-    check_hash(idv_login_info)
+    check_hash()
 
     try:
         os.remove(Program_dir + "\\hash.sha256")
     except FileNotFoundError:
-        print()
+        pass
     if idv_login_program:
         check_update(idv_tool_info, Program_dir)
 
-    if not os.path.exists(CONFIG_FILE):
+    if not load_from_config("settings", "timer_enable") in [True, False]:
         timer_enable = Timer_module(CONFIG_FILE)
     else:
-        timer_enable = load_from_config(CONFIG_FILE, "settings", "timer_enable")
+        timer_enable = load_from_config("settings", "timer_enable")
 
-    idv_login_program = find_program(Program_dir, 'idv-login*')[0]
+    idv_login_program = find_program('idv-login*')[0]
     print(f"成功找到idv-login，路径:{Program_dir}\\{idv_login_program}")
 
     if timer_enable:
