@@ -43,40 +43,73 @@ def disable_quick_edit():
     kernel32.SetConsoleMode(kernel32.GetStdHandle(-10), (0x4 | 0x80 | 0x20 | 0x2 | 0x10 | 0x1 | 0x00 | 0x100))
 
 
-def get_version(file_path):
-    try:
-        info = win32api.GetFileVersionInfo(file_path, '\\')
+# def get_version(file_path):
+#     try:
+#         info = win32api.GetFileVersionInfo(file_path, '\\')
+#
+#         file_version = (
+#             info['FileVersionMS'] >> 16,
+#             info['FileVersionMS'] & 0xFFFF,
+#             info['FileVersionLS'] >> 16,
+#             info['FileVersionLS'] & 0xFFFF
+#         )
+#
+#         simplified_version = f"{file_version[0]}.{file_version[1]}.{file_version[2]}"
+#
+#         return simplified_version
+#
+#     except Exception as e:
+#         print(f"获取文件版本信息失败: {str(e)}")
+#         return None
 
-        file_version = (
-            info['FileVersionMS'] >> 16,
-            info['FileVersionMS'] & 0xFFFF,
-            info['FileVersionLS'] >> 16,
-            info['FileVersionLS'] & 0xFFFF
-        )
 
-        simplified_version = f"{file_version[0]}.{file_version[1]}.{file_version[2]}"
+def module_config_manager():
+    global timer_enable, save_playtime_enable
+    if not load_from_config("settings", "timer enable") in [True, False]:
+        timer_enable = Timer_module_config()
+    else:
+        timer_enable = load_from_config("settings", "timer enable")
 
-        return simplified_version
-
-    except Exception as e:
-        print(f"获取文件版本信息失败: {str(e)}")
-        return None
+    if not load_from_config("settings", "save playtime") in [True, False]:
+        save_playtime_enable = save_playtime_module_config()
+    else:
+        save_playtime_enable = load_from_config("settings", "save playtime")
 
 
-def Timer_module(config_file):
+def Timer_module_config():
     while True:
         choice = input("是否开启计时？（y/n）: ").strip().lower()
         if choice in ['y', 'n']:
-            save_to_config({'settings': {'timer_enable': choice == 'y'}}, config_file)
+            save_to_config({'settings': {'timer enable': choice == 'y'}})
             return choice == 'y'
         else:
             print("请输入 'y' 或 'n'.")
 
 
-def save_to_config(settings_dict, config_file):
+def save_playtime_module_config():
+    while True:
+        choice = input("是否保存游玩时间？（y/n）: ").strip().lower()
+        if choice in ['y', 'n']:
+            save_to_config({'settings': {'save playtime': choice == 'y'}})
+            return choice == 'y'
+        else:
+            print("请输入 'y' 或 'n'.")
+
+
+def automatic_update():
+    while True:
+        choice = input("是否开启自动更新（y/n）: ").strip().lower()
+        if choice in ['y', 'n']:
+            save_to_config({'settings': {'automatic update': choice == 'y'}})
+            return choice == 'y'
+        else:
+            print("请输入 'y' 或 'n'.")
+
+
+def save_to_config(settings_dict):
     try:
         config = configparser.ConfigParser()
-        config.read(config_file)
+        config.read(CONFIG_FILE)
 
         for section, options in settings_dict.items():
             if section not in config:
@@ -84,8 +117,8 @@ def save_to_config(settings_dict, config_file):
             for key, value in options.items():
                 config[section][key] = str(value)
 
-        config.write(open(config_file, 'w'))
-        print(f"设置已保存到 {config_file} 文件中。")
+        config.write(open(CONFIG_FILE, 'w'))
+        # print(f"设置已保存到 {CONFIG_FILE} 文件中。")
     except KeyboardInterrupt:
         print("检测到用户退出程序，输入中断！")
 
@@ -275,15 +308,19 @@ def check_update(idv_tool_release_info, program_dir):
 
 def check_hash():
     current_hash = get_file_hash(f"{Program_dir}\\{idv_login_program[0]}", hashlib.sha256)
-    hash_from_config = load_from_config("idv-login", "hash")
+    # hash_from_config = load_from_config("idv-login", "hash")
 
-    if hash_from_config is None:
-        hash_url = get_download_url(idv_login_info, True)
-        open(f'{Program_dir}\\hash.sha256', 'wb').write(requests.get(hash_url, stream=True).content)
-        hash_value = open(f"{Program_dir}\\hash.sha256", "r").read().strip()
-        save_to_config({'idv-login': {'hash': hash_value}}, CONFIG_FILE)
-        hash_from_config = hash_value
-    elif current_hash.upper() != hash_from_config.upper():
+    hash_url = get_download_url(idv_login_info, True)
+    open(f'{Program_dir}\\hash.sha256', 'wb').write(requests.get(hash_url, stream=True).content)
+    hash_value = open(f"{Program_dir}\\hash.sha256", "r").read().strip()
+
+    # if hash_from_config is None:
+    #     hash_url = get_download_url(idv_login_info, True)
+    #     open(f'{Program_dir}\\hash.sha256', 'wb').write(requests.get(hash_url, stream=True).content)
+    #     hash_value = open(f"{Program_dir}\\hash.sha256", "r").read().strip()
+    #     save_to_config({'idv-login': {'hash': hash_value}})
+    #     hash_from_config = hash_value
+    if current_hash.upper() != hash_value.upper():
         print("验证失败，可能是 idv-login 已损坏 或 已更新...!")
         print("正在尝试下载最新 idv-login...")
         os.remove(f"{Program_dir}\\{idv_login_program[0]}")
@@ -295,8 +332,7 @@ def check_hash():
         hash_url = get_download_url(idv_login_info, True)
         open(f'{Program_dir}\\hash.sha256', 'wb').write(requests.get(hash_url, stream=True).content)
         hash_value = open(f"{Program_dir}\\hash.sha256", "r").read().strip()
-        save_to_config({'idv-login': {'hash': hash_value}}, CONFIG_FILE)
-    if current_hash.upper() == hash_from_config.upper():
+    if current_hash.upper() == hash_value.upper():
         return True
 
 
@@ -304,7 +340,7 @@ class operational_status:
     def __init__(self):
         win32api.SetConsoleCtrlHandler(self.on_exit, True)
         self.start_time = datetime.now()
-        self.play_log_file = f"{Program_dir}\\play log.txt"
+        self.play_log_file = f"{Program_dir}\\playtime.log"
 
     def get_running_time(self):
         global hours, minutes, seconds
@@ -316,7 +352,7 @@ class operational_status:
         seconds = total_seconds % 60
         return f"{hours} 时 {minutes} 分 {seconds} 秒"
 
-    def save_playing_time(self):
+    def save_playtime(self):
         global hours, minutes, seconds
         end_time = datetime.now()
         today_date = time.strftime('%Y-%m-%d', time.localtime())
@@ -346,13 +382,15 @@ class operational_status:
             file.close()
 
     def run(self):
+        global save_playtime_enable
         try:
             os.system("cls")
             while is_process_running("dwrg.exe"):
                 time.sleep(1)
                 print("\033[0;0H第五人格运行中...")
-                print(f"已运行 {self.get_running_time()}")
-            self.save_playing_time()
+                print(f"已运行 {self.get_running_time()}   ")
+            if save_playtime_enable:
+                self.save_playtime()
 
             print("第五人格已关闭...")
             if is_process_running(idv_login_program):
@@ -373,10 +411,11 @@ class operational_status:
 
 if __name__ == '__main__':
     # try:
-    __version__ = '1.5.2'
+    __version__ = '1.5.3'
     CONFIG_FILE = 'config.ini'
     image_source = "https://mirror.ghproxy.com"
     global hours, minutes, seconds
+    global timer_enable, save_playtime_enable
 
     idv_login_info = get_info("idv-login", False)
     idv_tool_info = get_info("idv-tool", False)
@@ -391,7 +430,7 @@ if __name__ == '__main__':
         os.system("pause")
         sys.exit()
     else:
-        print(f"成功找到第五人格，路径：{Program_dir}\\{dwrg_program[0]}")
+        print(f"成功找到第五人格，路径：{Program_dir}\\{dwrg_program[0]}\n")
 
     if not os.path.exists(f"{Program_dir}\\config.ini"):
         open(f"{Program_dir}\\config.ini", "w").write("")
@@ -423,33 +462,54 @@ if __name__ == '__main__':
             hash_url = get_download_url(idv_login_info, True)
             download_file(hash_url, f"{Program_dir}\\hash.sha256")
             hash_value = open(f"{Program_dir}\\hash.sha256", "r").read().strip()
-            save_to_config({'idv-login': {'hash': hash_value}}, CONFIG_FILE)
+            save_to_config({'idv-login': {'hash': hash_value}})
         except Exception as e:
             print(f"下载失败!: {e}")
             os.system("pause")
             sys.exit()
 
-    check_hash()
-
-    try:
-        os.remove(Program_dir + "\\hash.sha256")
-    except FileNotFoundError:
-        pass
-    if idv_login_program:
-        check_update(idv_tool_info, Program_dir)
-
-    if not load_from_config("settings", "timer_enable") in [True, False]:
-        timer_enable = Timer_module(CONFIG_FILE)
+    if not load_from_config("settings", "automatic update") in [True, False]:
+        automatic_update = automatic_update()
     else:
-        timer_enable = load_from_config("settings", "timer_enable")
+        automatic_update = load_from_config("settings", "automatic update")
+
+    if automatic_update:
+        print("正在检查工具更新，可能需要一点时间...")
+        check_hash()
+
+        try:
+            os.remove(Program_dir + "\\hash.sha256")
+        except FileNotFoundError:
+            pass
+        if idv_login_program:
+            check_update(idv_tool_info, Program_dir)
+    else:
+        print("自动更新已关闭，若需要开启可以在本工具同级目录找到“config.ini”文件，将其值改为True即可\n")
+
+    module_config_manager()
+
+    # if not load_from_config("settings", "timer_enable") in [True, False]:
+    #     timer_enable = Timer_module()
+    # else:
+    #     timer_enable = load_from_config("settings", "timer_enable")
+    #
+    # if not load_from_config("settings", "save_play_time") in [True, False]:
+    #     save_play_time = save_play_time()
+    # else:
+    #     save_play_time = load_from_config("settings", "save_play_time")
 
     idv_login_program = find_program('idv-login*')[0]
-    print(f"成功找到idv-login，路径:{Program_dir}\\{idv_login_program}")
+    print(f"成功找到idv-login，路径:{Program_dir}\\{idv_login_program}\n")
 
     if timer_enable:
-        print("计时已开启。(若需要关闭计时器可以在本工具同级目录找到“config.ini”文件，将其值改为False即可)")
+        print("计时已开启。(若需要关闭计时器可以在本工具同级目录找到“config.ini”文件，将其值改为False即可)\n")
     else:
-        print("计时未开启。(若需要开启计时器可以在本工具同级目录找到“config.ini”文件，将其值改为True即可)")
+        print("计时未开启。(若需要开启计时器可以在本工具同级目录找到“config.ini”文件，将其值改为True即可)\n")
+
+    if save_playtime_enable:
+        print("保存游戏时间已开启。(若不需要保存时间功能可以在本工具同级目录找到“config.ini”文件，将其值改为False即可)\n")
+    else:
+        print("保存游戏时间未开启。(若需要保存时间功能可以在本工具同级目录找到“config.ini”文件，将其值改为True即可)\n")
 
     if ctypes.windll.shell32.IsUserAnAdmin():
         disable_quick_edit()
@@ -471,7 +531,7 @@ if __name__ == '__main__':
                 os.system("pause")
                 sys.exit()
             time.sleep(1)
-
+        time.sleep(3)
         status = operational_status()
         status.run() if timer_enable else sys.exit()
 
