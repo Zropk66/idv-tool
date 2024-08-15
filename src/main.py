@@ -63,74 +63,121 @@ def disable_quick_edit():
 #         return None
 
 
-def module_config_manager():
-    global timer_enable, save_playtime_enable
-    if not load_from_config("settings", "timer enable") in [True, False]:
-        timer_enable = Timer_module_config()
-    else:
-        timer_enable = load_from_config("settings", "timer enable")
+class config_manager:
+    # def __init__(self):
 
-    if not load_from_config("settings", "save playtime") in [True, False]:
-        save_playtime_enable = save_playtime_module_config()
-    else:
-        save_playtime_enable = load_from_config("settings", "save playtime")
+    def manager(self):
+        global timer_enable, save_playtime_enable, auto_update_enable, auto_exit_idv_login_enable
 
-
-def Timer_module_config():
-    while True:
-        choice = input("是否开启计时？（y/n）: ").strip().lower()
-        if choice in ['y', 'n']:
-            save_to_config({'settings': {'timer enable': choice == 'y'}})
-            return choice == 'y'
+        if not self.load_from_config("settings", "auto update") in [True, False]:
+            auto_update_enable = self.automatic_update()
         else:
-            print("请输入 'y' 或 'n'.")
+            auto_update_enable = self.load_from_config("settings", "auto update")
 
-
-def save_playtime_module_config():
-    while True:
-        choice = input("是否保存游玩时间？（y/n）: ").strip().lower()
-        if choice in ['y', 'n']:
-            save_to_config({'settings': {'save playtime': choice == 'y'}})
-            return choice == 'y'
+        if not self.load_from_config("settings", "timer") in [True, False]:
+            timer_enable = self.Timer_module_config()
         else:
-            print("请输入 'y' 或 'n'.")
+            timer_enable = self.load_from_config("settings", "timer")
 
-
-def automatic_update():
-    while True:
-        choice = input("是否开启自动更新（y/n）: ").strip().lower()
-        if choice in ['y', 'n']:
-            save_to_config({'settings': {'automatic update': choice == 'y'}})
-            return choice == 'y'
+        if not self.load_from_config("settings", "save playtime") in [True, False]:
+            save_playtime_enable = self.save_playtime_module_config()
         else:
-            print("请输入 'y' 或 'n'.")
+            save_playtime_enable = self.load_from_config("settings", "save playtime")
 
+        if not self.load_from_config("settings", "auto exit idv-login") in [True, False]:
+            auto_exit_idv_login_enable = self.auto_exit_idv_login_config()
+        else:
+            auto_exit_idv_login_enable = self.load_from_config("settings", "auto exit idv-login")
 
-def save_to_config(settings_dict):
-    try:
+    def automatic_update(self):
+        while True:
+            choice = input("是否开启自动更新（y/n）: ").strip().lower()
+            if choice in ['y', 'n']:
+                self.save_to_config({'settings': {'auto update': choice == 'y'}})
+                return choice == 'y'
+            else:
+                print("请输入 'y' 或 'n'.")
+
+    def save_playtime_module_config(self):
+        while True:
+            choice = input("是否保存游玩时间？（y/n）: ").strip().lower()
+            if choice in ['y', 'n']:
+                self.save_to_config({'settings': {'save playtime': choice == 'y'}})
+                return choice == 'y'
+            else:
+                print("请输入 'y' 或 'n'.")
+
+    def Timer_module_config(self):
+        while True:
+            choice = input("是否开启计时？（y/n）: ").strip().lower()
+            if choice in ['y', 'n']:
+                self.save_to_config({'settings': {'timer': choice == 'y'}})
+                return choice == 'y'
+            else:
+                print("请输入 'y' 或 'n'.")
+
+    def auto_exit_idv_login_config(self):
+        while True:
+            choice = input("是否开启在游戏登录成功后立刻关闭idv-login？（y/n）: ").strip().lower()
+            if choice in ['y', 'n']:
+                self.save_to_config({'settings': {'auto exit idv-login': choice == 'y'}})
+                return choice == 'y'
+            else:
+                print("请输入 'y' 或 'n'.")
+
+    def save_to_config(self, settings_dict):
+        try:
+            config = configparser.ConfigParser()
+            config.read(CONFIG_FILE)
+
+            for section, options in settings_dict.items():
+                if section not in config:
+                    config[section] = {}
+                for key, value in options.items():
+                    config[section][key] = str(value)
+
+            config.write(open(CONFIG_FILE, 'w'))
+            # print(f"设置已保存到 {CONFIG_FILE} 文件中。")
+        except KeyboardInterrupt:
+            print("检测到用户退出程序，输入中断！")
+
+    def load_from_config(self, section, key):
         config = configparser.ConfigParser()
         config.read(CONFIG_FILE)
 
-        for section, options in settings_dict.items():
-            if section not in config:
-                config[section] = {}
-            for key, value in options.items():
-                config[section][key] = str(value)
-
-        config.write(open(CONFIG_FILE, 'w'))
-        # print(f"设置已保存到 {CONFIG_FILE} 文件中。")
-    except KeyboardInterrupt:
-        print("检测到用户退出程序，输入中断！")
+        value = config.get(section, key, fallback=None)
+        if value in ("True", "False"):
+            value = eval(value)
+        return value
 
 
-def load_from_config(section, key):
-    config = configparser.ConfigParser()
-    config.read(CONFIG_FILE)
+class module_manager:
 
-    value = config.get(section, key, fallback=None)
-    if value in ("True", "False"):
-        value = eval(value)
-    return value
+    def auto_update(self):
+        print("正在检查工具更新，可能需要一点时间...")
+        check_hash()
+        try:
+            os.remove(Program_dir + "\\hash.sha256")
+        except FileNotFoundError:
+            pass
+        if idv_login_program:
+            check_update(idv_tool_info, Program_dir)
+
+    def auto_exit_idv_login_module(self):
+        os.system("cls")
+        path = "C:\\ProgramData\\idv-login\\log.txt"
+        find = False
+        while not find:
+            print("\033[0;0H正在等待游戏登录...")
+            log_list = open(path, 'r', encoding='utf-8').readlines()
+            log = list(reversed(log_list))[0]
+
+            if "('verify_status', '1')" in log:
+                print("登录成功！")
+                os.system(f"taskkill /im {idv_login_program} /f")
+                # open(path, 'w', encoding='utf-8').write("")
+                find = True
+            time.sleep(1)
 
 
 def get_file_hash(file_path: str, hash_method) -> str:
@@ -338,8 +385,8 @@ def check_hash():
 
 class operational_status:
     def __init__(self):
+        self.start_time = None
         win32api.SetConsoleCtrlHandler(self.on_exit, True)
-        self.start_time = datetime.now()
         self.play_log_file = f"{Program_dir}\\playtime.log"
 
     def get_running_time(self):
@@ -384,7 +431,10 @@ class operational_status:
     def run(self):
         global save_playtime_enable
         try:
+            if auto_exit_idv_login_enable:
+                modules.auto_exit_idv_login_module()
             os.system("cls")
+            self.start_time = datetime.now()
             while is_process_running("dwrg.exe"):
                 time.sleep(1)
                 print("\033[0;0H第五人格运行中...")
@@ -410,133 +460,117 @@ class operational_status:
 
 
 if __name__ == '__main__':
-    # try:
-    __version__ = '1.5.3'
-    CONFIG_FILE = 'config.ini'
-    image_source = "https://mirror.ghproxy.com"
-    global hours, minutes, seconds
-    global timer_enable, save_playtime_enable
+    try:
+        __version__ = '1.5.4'
+        CONFIG_FILE = 'config.ini'
+        image_source = "https://mirror.ghproxy.com"
+        global hours, minutes, seconds
+        global timer_enable, save_playtime_enable, auto_update_enable, auto_exit_idv_login_enable
 
-    idv_login_info = get_info("idv-login", False)
-    idv_tool_info = get_info("idv-tool", False)
+        idv_login_info = get_info("idv-login", False)
+        idv_tool_info = get_info("idv-tool", False)
+        configs = config_manager()
+        modules = module_manager()
 
-    Program_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-    dwrg_program = find_program('dwrg.exe')
+        Program_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+        dwrg_program = find_program('dwrg.exe')
 
-    os.system(f"title 第五人格小助手 - 当前版本：{__version__}")
+        os.system(f"title 第五人格小助手 - 当前版本：{__version__}")
 
-    if not dwrg_program:
-        print("当前文件夹未找到第五人格， 请将程序放置在第五人格根目录后再运行！")
-        os.system("pause")
-        sys.exit()
-    else:
-        print(f"成功找到第五人格，路径：{Program_dir}\\{dwrg_program[0]}\n")
-
-    if not os.path.exists(f"{Program_dir}\\config.ini"):
-        open(f"{Program_dir}\\config.ini", "w").write("")
-
-    idv_login_program = find_program('idv-login*')
-
-    if len(idv_login_program) > 1:
-        print("识别到当前目录有多个 idv-login 将自动删除并下载最新版本！")
-        for program in idv_login_program:
-            os.remove(program)
-        idv_login_program.clear()
-    elif not idv_login_program:
-        print("未在当前目录找到idv-login正在尝试下载")
-
-    if not idv_login_program:
-        try:
-            download_index = get_download_index(idv_login_info, False)
-            download_url = get_download_url(idv_login_info, False)
-            download_file(download_url,
-                          f"{Program_dir}\\{idv_login_info['assets'][download_index]['name']}")
-            # if int(platform.release()) <= 7:
-            #     download_url = release_info['assets'][2]['browser_download_url']
-            #     download_update(download_url, f"{Program_dir}\\{release_info['assets'][2]['name']}")
-            # else:
-            #     download_url = release_info['assets'][0]['browser_download_url']
-            #     download_update(download_url, f"{Program_dir}\\{release_info['assets'][0]['name']}")
-
-            print("下载成功！")
-            hash_url = get_download_url(idv_login_info, True)
-            download_file(hash_url, f"{Program_dir}\\hash.sha256")
-            hash_value = open(f"{Program_dir}\\hash.sha256", "r").read().strip()
-            save_to_config({'idv-login': {'hash': hash_value}})
-        except Exception as e:
-            print(f"下载失败!: {e}")
+        if not dwrg_program:
+            print("当前文件夹未找到第五人格， 请将程序放置在第五人格根目录后再运行！")
             os.system("pause")
             sys.exit()
+        else:
+            print(f"成功找到第五人格，路径：{Program_dir}\\{dwrg_program[0]}\n")
 
-    if not load_from_config("settings", "automatic update") in [True, False]:
-        automatic_update = automatic_update()
-    else:
-        automatic_update = load_from_config("settings", "automatic update")
+        if not os.path.exists(f"{Program_dir}\\config.ini"):
+            open(f"{Program_dir}\\config.ini", "w").write("")
 
-    if automatic_update:
-        print("正在检查工具更新，可能需要一点时间...")
-        check_hash()
+        idv_login_program = find_program('idv-login*')
 
-        try:
-            os.remove(Program_dir + "\\hash.sha256")
-        except FileNotFoundError:
-            pass
-        if idv_login_program:
-            check_update(idv_tool_info, Program_dir)
-    else:
-        print("自动更新已关闭，若需要开启可以在本工具同级目录找到“config.ini”文件，将其值改为True即可\n")
+        if len(idv_login_program) > 1:
+            print("识别到当前目录有多个 idv-login 将自动删除并下载最新版本！")
+            for program in idv_login_program:
+                os.remove(program)
+            idv_login_program.clear()
+        elif not idv_login_program:
+            print("未在当前目录找到idv-login正在尝试下载")
 
-    module_config_manager()
+        if not idv_login_program:
+            try:
+                download_index = get_download_index(idv_login_info, False)
+                download_url = get_download_url(idv_login_info, False)
+                download_file(download_url,
+                              f"{Program_dir}\\{idv_login_info['assets'][download_index]['name']}")
+                # if int(platform.release()) <= 7:
+                #     download_url = release_info['assets'][2]['browser_download_url']
+                #     download_update(download_url, f"{Program_dir}\\{release_info['assets'][2]['name']}")
+                # else:
+                #     download_url = release_info['assets'][0]['browser_download_url']
+                #     download_update(download_url, f"{Program_dir}\\{release_info['assets'][0]['name']}")
 
-    # if not load_from_config("settings", "timer_enable") in [True, False]:
-    #     timer_enable = Timer_module()
-    # else:
-    #     timer_enable = load_from_config("settings", "timer_enable")
-    #
-    # if not load_from_config("settings", "save_play_time") in [True, False]:
-    #     save_play_time = save_play_time()
-    # else:
-    #     save_play_time = load_from_config("settings", "save_play_time")
-
-    idv_login_program = find_program('idv-login*')[0]
-    print(f"成功找到idv-login，路径:{Program_dir}\\{idv_login_program}\n")
-
-    if timer_enable:
-        print("计时已开启。(若需要关闭计时器可以在本工具同级目录找到“config.ini”文件，将其值改为False即可)\n")
-    else:
-        print("计时未开启。(若需要开启计时器可以在本工具同级目录找到“config.ini”文件，将其值改为True即可)\n")
-
-    if save_playtime_enable:
-        print("保存游戏时间已开启。(若不需要保存时间功能可以在本工具同级目录找到“config.ini”文件，将其值改为False即可)\n")
-    else:
-        print("保存游戏时间未开启。(若需要保存时间功能可以在本工具同级目录找到“config.ini”文件，将其值改为True即可)\n")
-
-    if ctypes.windll.shell32.IsUserAnAdmin():
-        disable_quick_edit()
-        print("正在启动登录工具...")
-        os.system("start " + Program_dir + "\\" + idv_login_program)
-        while not is_port_in_use(443):
-            time.sleep(1)
-        print("登录工具启动成功，正在唤醒第五人格！")
-        os.system("start " + Program_dir + "\\dwrg.exe")
-
-        # print("正在等待第五人格运行... (第五人格若在 10 秒后还未启动程序将自动关闭)")
-
-        for timing in range(10):
-            if is_process_running("dwrg.exe"):
-                print("第五人格已启动！")
-                break
-            elif timing == 9:
-                print("第五人格启动超时，程序已退出！")
+                print("下载成功！")
+                hash_url = get_download_url(idv_login_info, True)
+                download_file(hash_url, f"{Program_dir}\\hash.sha256")
+                hash_value = open(f"{Program_dir}\\hash.sha256", "r").read().strip()
+                configs.save_to_config({'idv-login': {'hash': hash_value}})
+            except Exception as e:
+                print(f"下载失败!: {e}")
                 os.system("pause")
                 sys.exit()
-            time.sleep(1)
-        time.sleep(3)
-        status = operational_status()
-        status.run() if timer_enable else sys.exit()
 
-    else:
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
-# except Exception as e:
-#     print(f"程序出现未知错误，现已退出！错误代码:{e}")
-#     os.system("pause")
+        configs.manager()
+
+        if auto_update_enable:
+            modules.auto_update()
+        else:
+            print("自动更新已关闭，若需要开启可以在本工具同级目录找到“config.ini”文件，将其值改为True即可\n")
+
+        idv_login_program = find_program('idv-login*')[0]
+        print(f"成功找到idv-login，路径:{Program_dir}\\{idv_login_program}\n")
+
+        if timer_enable:
+            print("计时已开启。(若需要关闭计时器可以在本工具同级目录找到“config.ini”文件，将其值改为False即可)\n")
+        else:
+            print("计时未开启。(若需要开启计时器可以在本工具同级目录找到“config.ini”文件，将其值改为True即可)\n")
+
+        if save_playtime_enable:
+            print(
+                "保存游戏时间已开启。(若不需要保存时间功能可以在本工具同级目录找到“config.ini”文件，将其值改为False即可)\n")
+        else:
+            print(
+                "保存游戏时间未开启。(若需要保存时间功能可以在本工具同级目录找到“config.ini”文件，将其值改为True即可)\n")
+
+        if ctypes.windll.shell32.IsUserAnAdmin():
+            disable_quick_edit()
+            print("正在启动idv-login...\n")
+            os.system("start " + Program_dir + "\\" + idv_login_program)
+            while not is_port_in_use(443):
+                time.sleep(1)
+            print("idv-login启动成功，正在唤醒第五人格！\n")
+            os.system("start " + Program_dir + "\\dwrg.exe")
+
+            for timing in range(10):
+                if is_process_running("dwrg.exe"):
+                    print("第五人格已启动！")
+                    break
+                elif timing == 9:
+                    print("第五人格启动超时，程序已退出！")
+                    os.system("pause")
+                    sys.exit()
+                time.sleep(1)
+            time.sleep(3)
+            status = operational_status()
+            if timer_enable:
+                status.run()
+            else:
+                if auto_exit_idv_login_enable:
+                    modules.auto_exit_idv_login_module()
+                sys.exit()
+
+        else:
+            ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
+    except Exception as e:
+        print(f"程序出现未知错误，现已退出！错误代码:{e}")
+        os.system("pause")
