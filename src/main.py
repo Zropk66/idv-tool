@@ -172,11 +172,15 @@ class module_manager:
             log_list = open(path, 'r', encoding='utf-8').readlines()
             log = list(reversed(log_list))[0]
 
-            if "('verify_status', '1')" in log:
-                print("登录成功！")
-                os.system(f"taskkill /im {idv_login_program} /f")
-                # open(path, 'w', encoding='utf-8').write("")
-                find = True
+            login_successful = {"verify_status",
+                                "渠道服登录信息已更新"}
+
+            for login_message in login_successful:
+                if login_message in log:
+                    print("登录成功！")
+                    os.system(f"taskkill /im {idv_login_program} /f")
+                    # open(path, 'w', encoding='utf-8').write("")
+                    find = True
             time.sleep(1)
 
 
@@ -461,7 +465,7 @@ class operational_status:
 
 if __name__ == '__main__':
     try:
-        __version__ = '1.5.4'
+        __version__ = '1.5.5'
         CONFIG_FILE = 'config.ini'
         image_source = "https://mirror.ghproxy.com"
         global hours, minutes, seconds
