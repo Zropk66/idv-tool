@@ -271,9 +271,9 @@ def check_hash():
 
     hash_url = get_download_url(idv_login_info, True)
     open(f'{Program_dir}\\hash.sha256', 'wb').write(requests.get(hash_url, stream=True).content)
-    hash_value = open(f"{Program_dir}\\hash.sha256", "r").read().strip()
+    latest_hash_value = open(f"{Program_dir}\\hash.sha256", "r").read().strip()
 
-    if current_hash.upper() != hash_value.upper():
+    if current_hash.upper() != latest_hash_value.upper():
         print("验证失败，可能是 idv-login 已损坏 或 已更新...!")
         print("正在尝试下载最新 idv-login...")
         os.remove(f"{Program_dir}\\{idv_login_program[0]}")
@@ -283,8 +283,8 @@ def check_hash():
         download_file(download_url, f"{Program_dir}\\{idv_login_info['assets'][idv_login_download_index]['name']}")
 
         open(f'{Program_dir}\\hash.sha256', 'wb').write(requests.get(hash_url, stream=True).content)
-        hash_value = open(f"{Program_dir}\\hash.sha256", "r").read().strip()
-    if current_hash.upper() == hash_value.upper():
+        latest_hash_value = open(f"{Program_dir}\\hash.sha256", "r").read().strip()
+    if current_hash.upper() == latest_hash_value.upper():
         return True
 
 
