@@ -54,26 +54,25 @@ def load_module_config():
 
 
 def check_config():
-    all_config = {"configs": {"auto update": "是否开启自动更新?",
-                              "timer": "是否开启计时器？",
-                              "save playtime": "是否保存游玩时间？",
-                              "auto exit idv-login": "是否开启自动退出idv-login?"}
+    all_config = {"auto update": "是否开启自动更新?",
+                  "timer": "是否开启计时器？",
+                  "save playtime": "是否保存游玩时间？",
+                  "auto exit idv-login": "是否开启自动退出idv-login?"
                   }
 
     configs = configparser.ConfigParser()
     configs.read("config.ini")
 
-    for section, options in all_config.items():
-        for key, description in options.items():
-            config_status = configs.get("settings", key, fallback="None")
-            if config_status == "None":
-                while True:
-                    choice = input(f"{description}（y/n）: ").strip().lower()
-                    if choice in ['y', 'n']:
-                        save_to_config({'settings': {key: choice == 'y'}})
-                        break
-                    else:
-                        print("请输入 'y' 或 'n'.")
+    for key, description in all_config.items():
+        config_status = configs.get("settings", key, fallback="None")
+        if config_status == "None":
+            while True:
+                choice = input(f"{description}（y/n）: ").strip().lower()
+                if choice in ['y', 'n']:
+                    save_to_config({'settings': {key: choice == 'y'}})
+                    break
+                else:
+                    print("请输入 'y' 或 'n'.")
 
 
 def save_to_config(settings_dict):
