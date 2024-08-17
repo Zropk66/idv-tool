@@ -260,10 +260,9 @@ def check_update():
             download_file(idv_tool_update_info[index]['download_url'], idv_tool_update_info[index]['name'])
 
         updater_url = idv_tool_info['assets'][0]['browser_download_url']
-        file = open("updater.ini", "w")
-        file.write(updater_url)
-        file.close()
-
+        with open("updater.ini", "w") as file:
+            file.write(updater_url)
+            file.close()
         os.system("start " + Program_dir + "\\updater.exe")
         sys.exit()
 
@@ -365,7 +364,9 @@ class operational_status:
             time.sleep(1)
             sys.exit()
         except KeyboardInterrupt:
-            self.on_exit(self)
+            print("检测到强制退出！游玩时间将不会保存！")
+            time.sleep(1)
+            sys.exit()
 
     def on_exit(self, signal_type):
         print("检测到强制退出！游玩时间将不会保存！")
@@ -443,22 +444,11 @@ if __name__ == '__main__':
 
         load_module_config()
 
-        if auto_update_enable is True:
-            auto_update()
-        else:
-            print("自动更新已关闭。若需要开启可以在本工具同级目录找到“config.ini”文件，将其值改为True即可\n")
+        auto_update() if auto_update_enable is True else print("自动更新已关闭。")
 
-        if timer_enable is True:
-            print("计时已开启。(若需要关闭计时器可以在本工具同级目录找到“config.ini”文件，将其值改为False即可)\n")
-        else:
-            print("计时未开启。(若需要开启计时器可以在本工具同级目录找到“config.ini”文件，将其值改为True即可)\n")
+        print("计时已开启。\n") if timer_enable is True else print("计时未开启。\n")
 
-        if save_playtime_enable is True:
-            print(
-                "保存游戏时间已开启。(若不需要保存时间功能可以在本工具同级目录找到“config.ini”文件，将其值改为False即可)\n")
-        else:
-            print(
-                "保存游戏时间未开启。(若需要保存时间功能可以在本工具同级目录找到“config.ini”文件，将其值改为True即可)\n")
+        print("保存游戏时间已开启。") if save_playtime_enable is True else print("保存游戏时间未开启。")
 
         if ctypes.windll.shell32.IsUserAnAdmin():
             print("正在启动idv-login...\n")
