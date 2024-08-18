@@ -126,7 +126,7 @@ def auto_exit_idv_login_module():
     find = False
     print("正在等待游戏登录...")
 
-    while not find and is_process_running("dwrg.exe"):
+    while not find and is_process_running(dwrg_program_name):
         with open(path, 'r', encoding='utf-8') as file:
             log_list = file.readlines()
         log = log_list[-1]
@@ -263,34 +263,35 @@ def check_update():
         with open("updater.ini", "w") as file:
             file.write(updater_url)
             file.close()
-        os.system("start " + Program_dir + "\\updater.exe")
+        os.system("start " + os.path.join(Program_dir, "updater.exe"))
         sys.exit()
 
 
 def get_idv_tool_latest_hash():
     download_hash_url = get_download_url(idv_login_info, True)
-    open(f'{Program_dir}\\hash.sha256', 'wb').write(requests.get(download_hash_url, stream=True).content)
-    latest_hash_value = open(f"{Program_dir}\\hash.sha256", "r").read().strip()
+    open(os.path.join(Program_dir, "hash.sha256"), 'wb').write(requests.get(download_hash_url, stream=True).content)
+    latest_hash_value = open(os.path.join(Program_dir, "hash.sha256"), "r").read().strip()
     return latest_hash_value
 
 
 def check_hash():
-    current_hash = get_file_hash(f"{Program_dir}\\{idv_login_program[0]}", hashlib.sha256)
+    current_hash_value = get_file_hash(os.path.join(Program_dir, idv_login_program[0]), hashlib.sha256)
 
     latest_hash_value = get_idv_tool_latest_hash()
 
-    if current_hash.upper() != latest_hash_value.upper():
+    if current_hash_value.upper() != latest_hash_value.upper():
         print("验证失败，可能是 idv-login 已损坏 或 已更新...!")
         print("正在尝试下载最新 idv-login...")
-        os.remove(f"{Program_dir}\\{idv_login_program[0]}")
+        os.remove(os.path.join(Program_dir, idv_login_program[0]))
 
         idv_login_download_index = get_download_index(idv_login_info, False)
         idv_login_download_url = get_download_url(idv_login_info, False)
-        idv_login_save_path = f"{Program_dir}\\{idv_login_info['assets'][idv_login_download_index]['name']}"
-        download_file(idv_login_download_url, idv_login_save_path)
-        current_hash = get_file_hash(f"{Program_dir}\\{idv_login_program[0]}", hashlib.sha256)
+        idv_login_save_path = os.path.join(Program_dir, idv_login_info['assets'][idv_login_download_index]['name'])
 
-    if current_hash.upper() == latest_hash_value.upper():
+        download_file(idv_login_download_url, idv_login_save_path)
+        current_hash_value = get_file_hash(os.path.join(Program_dir, idv_login_program[0]), hashlib.sha256)
+
+    if current_hash_value.upper() == latest_hash_value.upper():
         return True
 
 
@@ -298,7 +299,7 @@ class operational_status:
     def __init__(self):
         self.start_time = None
         win32api.SetConsoleCtrlHandler(self.on_exit, True)
-        self.play_log_file = f"{Program_dir}\\playtime.log"
+        self.play_log_file = os.path.join(Program_dir, "playtime.log")
 
     def get_running_time(self):
         global hours, minutes, seconds
@@ -349,7 +350,7 @@ class operational_status:
                 auto_exit_idv_login_module()
             os.system("cls")
             self.start_time = datetime.now()
-            while is_process_running("dwrg.exe"):
+            while is_process_running(dwrg_program_name):
                 time.sleep(1)
                 print("\033[0;0H第五人格运行中...")
                 print(f"已运行 {self.get_running_time()}   ")
@@ -357,7 +358,7 @@ class operational_status:
                 self.save_playtime()
                 print("游玩时间已保存！")
 
-            if is_process_running(idv_login_program):
+            if is_process_running(idv_login_program_name):
                 os.system(f"taskkill /im {idv_login_program} /f")
                 print("登录工具已关闭已关闭...")
             print("程序即将关闭...")
@@ -388,6 +389,8 @@ if __name__ == '__main__':
         idv_tool_info = get_info("idv-tool", False)
 
         Program_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+        dwrg_program_name = "null"
+        idv_login_program_name = "null"
         dwrg_program = find_program('dwrg.exe')
 
         os.system(f"title 第五人格小助手 - 当前版本：{__version__}")
@@ -397,13 +400,13 @@ if __name__ == '__main__':
             os.system("pause")
             sys.exit()
         else:
-            print(f"成功找到第五人格，路径：{Program_dir}\\{dwrg_program[0]}\n")
+            dwrg_program_name = dwrg_program[0]
+            print(f"成功找到第五人格，路径：{os.path.join(Program_dir, dwrg_program_name)}\n")
 
-        if not os.path.exists(f"{Program_dir}\\config.ini"):
-            open(f"{Program_dir}\\config.ini", "w").write("")
+        if not os.path.exists(os.path.join(Program_dir, "config.ini")):
+            open(os.path.join(Program_dir, "config.ini"), "w").write("")
 
         idv_login_program = find_program('idv-login*')
-
         if len(idv_login_program) > 1:
             try:
                 print("识别到当前目录有多个 idv-login")
@@ -412,54 +415,55 @@ if __name__ == '__main__':
                 for program in idv_login_program:
                     current_hash = get_file_hash(os.path.join(Program_dir, program), hashlib.sha256)
                     if latest_hash.upper() == current_hash.upper():
-                        temp_idv_login_program = program
+                        idv_login_program_name = program
                         for program_rm in idv_login_program:
-                            if program_rm != temp_idv_login_program:
+                            if program_rm != idv_login_program_name:
                                 os.remove(os.path.join(Program_dir, program_rm))
-                        idv_login_program = temp_idv_login_program
                         break
                     else:
                         os.remove(os.path.join(Program_dir, program))
             except (requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
                 print("获取最新hash值失败，将随机使用一个idv-login")
                 print("若随机使用的 idv-login 无法打开，请确保网络能正常访问 api.github.com 或自行下载最新 idv-login")
-                idv_login_program = idv_login_program[0]
+                idv_login_program_name = idv_login_program[0]
         elif not idv_login_program:
             try:
                 print("未在当前目录找到 idv-login 正在尝试下载...")
                 download_index = get_download_index(idv_login_info, False)
                 download_url = get_download_url(idv_login_info, False)
-                download_file(download_url, f"{Program_dir}\\{idv_login_info['assets'][download_index]['name']}")
+                download_file(download_url, os.path.join(Program_dir, idv_login_info['assets'][download_index]['name']))
                 print("下载成功！")
-                idv_login_program = find_program('idv-login*')[0]
+                idv_login_program_name = find_program('idv-login*')[0]
 
             except Exception as e:
                 print(f"下载失败!: {e}")
                 os.system("pause")
                 sys.exit()
         elif len(idv_login_program) == 1:
-            idv_login_program = idv_login_program[0]
-
-        print(f"成功找到idv-login，路径:{Program_dir}\\{idv_login_program}\n")
+            idv_login_program_name = idv_login_program[0]
+        print(f"成功找到idv-login，路径:{os.path.join(Program_dir, idv_login_program_name)}\n")
 
         load_module_config()
 
-        auto_update() if auto_update_enable is True else print("自动更新已关闭。")
+        auto_update() if auto_update_enable is True else print("自动更新已关闭。\n")
 
         print("计时已开启。\n") if timer_enable is True else print("计时未开启。\n")
 
-        print("保存游戏时间已开启。") if save_playtime_enable is True else print("保存游戏时间未开启。")
+        print("保存游戏时间已开启。\n") if save_playtime_enable is True else print("保存游戏时间未开启。\n")
+
+        print("自动关闭 idv-login 已开启。\n") if auto_exit_idv_login_enable is True else print(
+            "自动关闭 idv-login 已未启。\n")
 
         if ctypes.windll.shell32.IsUserAnAdmin():
             print("正在启动idv-login...\n")
-            os.system("start " + Program_dir + "\\" + idv_login_program)
+            os.system("start " + os.path.join(Program_dir, idv_login_program_name))
             while not is_port_in_use(443):
                 time.sleep(1)
             print("idv-login启动成功，正在唤醒第五人格！\n")
-            os.system("start " + Program_dir + "\\dwrg.exe")
+            os.system("start " + os.path.join(Program_dir, dwrg_program_name))
 
             for timing in range(10):
-                if is_process_running("dwrg.exe"):
+                if is_process_running(dwrg_program_name):
                     print("第五人格已启动！\n")
                     break
                 elif timing == 9:
