@@ -136,7 +136,7 @@ def auto_exit_idv_login_module():
         for login_message in login_successful:
             if login_message in log:
                 print("登录成功！")
-                os.system(f"taskkill /im {idv_login_program} /f")
+                os.system(f"taskkill /im {idv_login_program_name} /f")
                 find = True
         time.sleep(1)
 
@@ -359,7 +359,7 @@ class operational_status:
                 print("游玩时间已保存！")
 
             if is_process_running(idv_login_program_name):
-                os.system(f"taskkill /im {idv_login_program} /f")
+                os.system(f"taskkill /im {idv_login_program_name} /f")
                 print("登录工具已关闭已关闭...")
             print("程序即将关闭...")
             time.sleep(1)
